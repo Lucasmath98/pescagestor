@@ -195,8 +195,8 @@
         <button class="btn btn-outline" style="width:auto; padding:8px 14px;" onclick="searchLocation()">Buscar</button>
       </div>
       <div class="weather-loc-results" id="locResults"></div>
-      <a class="tide-link" id="tideLink" href="https://www.marinha.mil.br/chm/tabuas-de-mare" target="_blank">🌊 Ver tábua de maré oficial (Marinha do Brasil)</a>
-      <div class="weather-disclaimer">⚠️ Previsão estimada (Open-Meteo). A tábua de maré acima é a fonte oficial da Marinha — não existe API gratuita confiável para exibir os horários de maré dentro do app. Para decisões de navegação, consulte sempre fontes oficiais.</div>
+      <a class="tide-link" id="tideLink" href="https://tabuademares.com" target="_blank">🌊 Ver tábua de maré (tabuademares.com)</a>
+      <div class="weather-disclaimer">⚠️ Previsão de tempo estimada (Open-Meteo). Tábua de maré via tabuademares.com, referência para pesca esportiva — não é válida para navegação. Para decisões de navegação, consulte sempre fontes oficiais (Marinha do Brasil / Capitania dos Portos).</div>
     </div>
 
     <div class="section-title">Histórico de viagens</div>
@@ -854,10 +854,21 @@
     }
   }
 
+  function slugify(s){
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-');
+  }
   function updateLocLabel(){
     document.getElementById('weatherLocLabel').textContent = '📍 ' + (db.location ? db.location.name : '—');
     const tideLink = document.getElementById('tideLink');
-    tideLink.textContent = db.location ? `🌊 Ver tábua de maré oficial — busque "${db.location.name}"` : '🌊 Ver tábua de maré oficial (Marinha do Brasil)';
+    if(db.location && db.location.admin1 && db.location.country === 'Brasil'){
+      const url = `https://tabuademares.com/br/${slugify(db.location.admin1)}/${slugify(db.location.name)}`;
+      tideLink.href = url;
+      tideLink.textContent = `🌊 Ver tábua de maré de ${db.location.name}`;
+    } else {
+      tideLink.href = 'https://tabuademares.com';
+      tideLink.textContent = '🌊 Ver tábua de maré (buscar local no site)';
+    }
   }
 
   async function searchLocation(){
@@ -875,7 +886,7 @@
         div.style.cursor = 'pointer';
         div.textContent = `${res.name}${res.admin1 ? ', '+res.admin1 : ''} — ${res.country}`;
         div.onclick = () => {
-          db.location = { lat: res.latitude, lon: res.longitude, name: res.name };
+          db.location = { lat: res.latitude, lon: res.longitude, name: res.name, admin1: res.admin1, country: res.country };
           save(); updateLocLabel(); fetchWeather(res.latitude, res.longitude);
           box.innerHTML = ''; document.getElementById('locSearchInput').value = '';
         };
