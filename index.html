@@ -34,6 +34,15 @@
   .chip{ flex:0 0 auto; background:var(--card); border:1px solid var(--track); border-radius:20px; padding:8px 14px; font-size:12.5px; font-weight:600; color:var(--text-soft); white-space:nowrap; }
   .chip.active{ background:var(--teal); color:#06201C; border-color:var(--teal); }
   .chip.add{ color:var(--gold); border-color:var(--gold); border-style:dashed; }
+  .vessel-chip-wrap{ flex:0 0 auto; display:flex; align-items:stretch; background:var(--card); border:1px solid var(--track); border-radius:20px; overflow:hidden; }
+  .vessel-chip-wrap.active{ background:var(--teal); border-color:var(--teal); }
+  .vessel-chip-wrap .chip-name{ background:none; border:none; padding:8px 6px 8px 14px; font-size:12.5px; font-weight:600; color:var(--text-soft); white-space:nowrap; }
+  .vessel-chip-wrap.active .chip-name{ color:#06201C; }
+  .vessel-chip-wrap .chip-dots{ background:none; border:none; padding:8px 10px 8px 4px; color:var(--text-dim); font-size:14px; font-weight:900; }
+  .vessel-chip-wrap.active .chip-dots{ color:rgba(6,32,28,0.6); }
+  .vessel-menu-item{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; background:var(--card); border:1px solid var(--track); border-radius:12px; padding:14px 16px; font-size:14.5px; color:var(--text); margin-bottom:10px; }
+  .vessel-menu-item.danger{ color:var(--red); border-color:rgba(224,101,79,0.4); }
+  .tide-link{ display:flex; align-items:center; justify-content:center; gap:8px; background:var(--card); border:1px solid var(--track); border-radius:10px; padding:11px; font-size:13px; color:var(--gold); font-weight:600; margin-top:10px; text-decoration:none; }
 
   .screen{ display:none; padding:14px 18px 10px; }
   .screen.active{ display:block; }
@@ -186,7 +195,8 @@
         <button class="btn btn-outline" style="width:auto; padding:8px 14px;" onclick="searchLocation()">Buscar</button>
       </div>
       <div class="weather-loc-results" id="locResults"></div>
-      <div class="weather-disclaimer">⚠️ Previsão estimada (Open-Meteo). Para decisões de navegação, consulte sempre a Marinha do Brasil / Capitania dos Portos.</div>
+      <a class="tide-link" id="tideLink" href="https://www.marinha.mil.br/chm/tabuas-de-mare" target="_blank">🌊 Ver tábua de maré oficial (Marinha do Brasil)</a>
+      <div class="weather-disclaimer">⚠️ Previsão estimada (Open-Meteo). A tábua de maré acima é a fonte oficial da Marinha — não existe API gratuita confiável para exibir os horários de maré dentro do app. Para decisões de navegação, consulte sempre fontes oficiais.</div>
     </div>
 
     <div class="section-title">Histórico de viagens</div>
@@ -309,6 +319,17 @@
   </div>
 </div>
 
+<div class="plans-overlay" id="vesselMenuOverlay" onclick="if(event.target===this) closeVesselMenu()">
+  <div class="plans-sheet">
+    <div class="sheet-handle"></div>
+    <h2 style="font-size:17px; margin-bottom:14px;" id="vesselMenuTitle">Barco</h2>
+    <button class="vessel-menu-item" onclick="renameVesselFromMenu()">✏️ Renomear barco</button>
+    <button class="vessel-menu-item" onclick="duplicateVesselFromMenu()">📄 Duplicar barco</button>
+    <button class="vessel-menu-item danger" onclick="deleteVesselFromMenu()">🗑️ Excluir barco</button>
+    <button class="btn btn-outline" onclick="closeVesselMenu()">Cancelar</button>
+  </div>
+</div>
+
 <div class="plans-overlay" id="plansOverlay" onclick="if(event.target===this) closePlans()">
   <div class="plans-sheet">
     <div class="sheet-handle"></div>
@@ -384,6 +405,46 @@
     const name = prompt('Novo nome do barco:', v.name);
     if(!name) return;
     v.name = name; save(); render();
+  }
+
+  let vesselMenuTarget = null;
+  function openVesselMenu(id){
+    vesselMenuTarget = id;
+    const v = getVessel(id);
+    document.getElementById('vesselMenuTitle').textContent = v ? v.name : 'Barco';
+    document.getElementById('vesselMenuOverlay').classList.add('open');
+  }
+  function closeVesselMenu(){
+    document.getElementById('vesselMenuOverlay').classList.remove('open');
+    vesselMenuTarget = null;
+  }
+  function renameVesselFromMenu(){
+    if(!vesselMenuTarget) return;
+    renameVessel(vesselMenuTarget);
+    closeVesselMenu();
+  }
+  function duplicateVesselFromMenu(){
+    if(!vesselMenuTarget) return;
+    const v = getVessel(vesselMenuTarget); if(!v) return;
+    const limit = PLANS[db.plan].limit;
+    if(db.vessels.length >= limit){
+      alert(`Seu plano atual (${PLANS[db.plan].name}) permite até ${limit} barcos. Aumente seu plano para cadastrar mais.`);
+      closeVesselMenu(); openPlans(); return;
+    }
+    const copy = JSON.parse(JSON.stringify(v));
+    copy.id = 'v' + Date.now();
+    copy.name = v.name + ' (cópia)';
+    db.vessels.push(copy);
+    db.selectedVesselId = copy.id;
+    save(); render(); closeVesselMenu();
+  }
+  function deleteVesselFromMenu(){
+    if(!vesselMenuTarget) return;
+    const v = getVessel(vesselMenuTarget); if(!v) return;
+    if(!confirm(`Excluir o barco "${v.name}"? Todo o histórico e a viagem em andamento dele serão apagados. Essa ação não pode ser desfeita.`)) return;
+    db.vessels = db.vessels.filter(x => x.id !== vesselMenuTarget);
+    if(db.selectedVesselId === vesselMenuTarget) db.selectedVesselId = 'all';
+    save(); render(); closeVesselMenu();
   }
 
   // ---------- PLANOS ----------
@@ -641,12 +702,18 @@
     allChip.onclick = () => selectVessel('all');
     chipsEl.appendChild(allChip);
     db.vessels.forEach(v => {
-      const c = document.createElement('button');
-      c.className = 'chip' + (db.selectedVesselId === v.id ? ' active' : '');
-      c.textContent = v.name;
-      c.onclick = () => selectVessel(v.id);
-      c.ondblclick = () => renameVessel(v.id);
-      chipsEl.appendChild(c);
+      const wrap = document.createElement('div');
+      wrap.className = 'vessel-chip-wrap' + (db.selectedVesselId === v.id ? ' active' : '');
+      const nameBtn = document.createElement('button');
+      nameBtn.className = 'chip-name';
+      nameBtn.textContent = v.name;
+      nameBtn.onclick = () => selectVessel(v.id);
+      const dotsBtn = document.createElement('button');
+      dotsBtn.className = 'chip-dots';
+      dotsBtn.textContent = '⋮';
+      dotsBtn.onclick = (e) => { e.stopPropagation(); openVesselMenu(v.id); };
+      wrap.appendChild(nameBtn); wrap.appendChild(dotsBtn);
+      chipsEl.appendChild(wrap);
     });
     const addChip = document.createElement('button');
     addChip.className = 'chip add';
@@ -789,6 +856,8 @@
 
   function updateLocLabel(){
     document.getElementById('weatherLocLabel').textContent = '📍 ' + (db.location ? db.location.name : '—');
+    const tideLink = document.getElementById('tideLink');
+    tideLink.textContent = db.location ? `🌊 Ver tábua de maré oficial — busque "${db.location.name}"` : '🌊 Ver tábua de maré oficial (Marinha do Brasil)';
   }
 
   async function searchLocation(){
