@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>PescaGestor</title>
+<meta name="theme-color" content="#0B2540">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B2540; --bg-elevated:#12324F; --surface:#183C5C; --card:#12324F;
+    --text:#F0F6FA; --text-soft:#AEC4D6; --text-dim:#6E8AA0;
+    --teal:#3FC1B0; --gold:#E8B84B; --red:#E0654F; --track:#1E4664;
+    --app-w:430px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{ background:#071A2C; color:var(--text); font-family:'Public Sans',sans-serif; -webkit-font-smoothing:antialiased; display:flex; justify-content:center; }
+  h1,h2,h3{ font-family:'Fraunces',serif; font-weight:700; margin:0; }
+  input,select{ font-family:inherit; }
+  button{ font-family:inherit; cursor:pointer; }
+
+  .app{ width:100%; max-width:var(--app-w); min-height:100vh; background:var(--bg); position:relative; padding-bottom:80px; }
+  @media (min-width:480px){ body{ padding:24px 0; } .app{ min-height:844px; border-radius:32px; box-shadow:0 30px 70px rgba(0,0,0,0.6); overflow:hidden; } }
+
+  .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px 4px; }
+  .brand{ display:flex; align-items:center; gap:8px; font-family:'Fraunces',serif; font-weight:700; font-size:17px; color:var(--teal); }
+  .status-pill{ display:inline-flex; align-items:center; gap:6px; background:var(--surface); border-radius:20px; padding:6px 12px; font-size:12px; font-weight:600; }
+  .dot{ width:8px; height:8px; border-radius:50%; background:var(--teal); }
+  .dot.off{ background:var(--text-dim); }
+
+  .screen{ display:none; padding:14px 18px 10px; }
+  .screen.active{ display:block; }
+
+  .panel{ background:linear-gradient(135deg, #164A6E, #0B2540); border-radius:18px; padding:20px; margin-bottom:16px; }
+  .panel .vessel-name{ font-size:20px; margin-bottom:4px; }
+  .panel .vessel-sub{ font-size:12.5px; color:var(--text-soft); margin-bottom:16px; }
+  .kpi-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .kpi{ background:rgba(255,255,255,0.06); border-radius:12px; padding:12px; }
+  .kpi .label{ font-size:11px; color:var(--text-soft); margin-bottom:4px; }
+  .kpi .value{ font-size:18px; font-weight:700; font-family:'Fraunces',serif; }
+  .kpi .value.pos{ color:var(--teal); }
+  .kpi .value.neg{ color:var(--red); }
+
+  .section-title{ font-size:14.5px; color:var(--text-soft); margin:18px 0 10px; text-transform:uppercase; letter-spacing:0.04em; }
+
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:8px; border:none; border-radius:10px; padding:13px 18px; font-weight:700; font-size:14.5px; width:100%; }
+  .btn-primary{ background:var(--teal); color:#06201C; }
+  .btn-outline{ background:transparent; border:1px solid var(--track); color:var(--text); }
+  .btn-danger{ background:var(--red); color:#2B0A05; }
+  .btn-row{ display:flex; gap:10px; margin-top:14px; }
+
+  .card-list{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .row-item{ background:var(--card); border-radius:12px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--track); }
+  .row-item .ri-main{ font-size:13.5px; font-weight:600; }
+  .row-item .ri-sub{ font-size:11.5px; color:var(--text-dim); margin-top:2px; }
+  .row-item .ri-val{ font-size:14px; font-weight:700; font-family:'Fraunces',serif; }
+  .row-item .ri-del{ background:none;border:none;color:var(--text-dim); font-size:16px; padding:4px 6px; margin-left:8px; }
+
+  .form{ background:var(--card); border-radius:14px; padding:16px; margin-bottom:16px; border:1px solid var(--track); }
+  .field{ margin-bottom:10px; }
+  .field label{ display:block; font-size:11.5px; color:var(--text-soft); margin-bottom:5px; }
+  .field input, .field select{ width:100%; background:var(--bg); border:1px solid var(--track); border-radius:9px; padding:10px 12px; color:var(--text); font-size:14px; }
+  .field-row{ display:flex; gap:10px; }
+  .field-row .field{ flex:1; }
+
+  .empty{ text-align:center; padding:30px 10px; color:var(--text-dim); font-size:13px; }
+
+  .tabbar{ position:fixed; bottom:0; left:50%; transform:translateX(-50%); width:100%; max-width:var(--app-w); background:rgba(7,26,44,0.95); backdrop-filter:blur(14px); border-top:1px solid var(--track); display:flex; justify-content:space-around; padding:9px 6px calc(9px + env(safe-area-inset-bottom)); z-index:40; }
+  .tab{ display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--text-dim); font-size:10px; padding:4px 6px; }
+  .tab.active{ color:var(--teal); }
+  .tab svg{ width:20px; height:20px; }
+
+  .result-table{ width:100%; border-collapse:collapse; margin-bottom:16px; }
+  .result-table tr{ border-bottom:1px solid var(--track); }
+  .result-table td{ padding:11px 4px; font-size:13.5px; }
+  .result-table td:last-child{ text-align:right; font-weight:700; font-family:'Fraunces',serif; }
+  .result-table tr.total td{ font-size:15px; color:var(--teal); border-top:2px solid var(--track); border-bottom:none; padding-top:14px; }
+
+  .history-item{ background:var(--card); border:1px solid var(--track); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+  .history-item .h-top{ display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:4px; }
+  .history-item .h-sub{ font-size:11.5px; color:var(--text-dim); }
+
+  .filter-row{ display:flex; gap:8px; margin-bottom:12px; }
+  .filter-row select, .filter-row input{ flex:1; background:var(--card); border:1px solid var(--track); border-radius:9px; padding:9px 10px; color:var(--text); font-size:12.5px; }
+  .year-stat{ display:flex; justify-content:space-between; align-items:center; background:var(--surface); border-radius:12px; padding:12px 14px; margin-bottom:14px; font-size:13px; }
+  .year-stat b{ font-family:'Fraunces',serif; font-size:17px; color:var(--teal); }
+
+  .mic-fab{ position:fixed; left:50%; transform:translateX(calc(-50% + 155px)); bottom:96px; width:52px; height:52px; border-radius:50%; background:var(--teal); border:none; box-shadow:0 8px 20px rgba(63,193,176,0.4); display:flex; align-items:center; justify-content:center; z-index:45; }
+  .mic-fab.listening{ animation:pulseMic 1.2s ease-in-out infinite; background:var(--red); }
+  @keyframes pulseMic{ 0%{box-shadow:0 0 0 0 rgba(224,101,79,0.55);} 70%{box-shadow:0 0 0 16px rgba(224,101,79,0);} 100%{box-shadow:0 0 0 0 rgba(224,101,79,0);} }
+
+  .voice-overlay{ position:fixed; inset:0; background:rgba(3,10,18,0.8); z-index:100; display:none; align-items:flex-end; justify-content:center; }
+  .voice-overlay.open{ display:flex; }
+  .voice-sheet{ width:100%; max-width:var(--app-w); background:var(--bg-elevated); border-radius:20px 20px 0 0; padding:22px 20px 26px; }
+  .voice-status{ text-align:center; font-size:13.5px; color:var(--text-soft); margin-bottom:14px; }
+  .voice-transcript{ background:var(--surface); border-radius:12px; padding:14px; font-size:14px; margin-bottom:16px; min-height:40px; }
+  .voice-parsed{ background:var(--card); border:1px solid var(--teal); border-radius:12px; padding:14px; margin-bottom:16px; }
+  .voice-parsed .vp-title{ font-size:11.5px; color:var(--teal); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px; }
+  .voice-parsed .vp-main{ font-size:15px; font-weight:700; margin-bottom:2px; }
+  .voice-parsed .vp-sub{ font-size:12px; color:var(--text-dim); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 15c3 3 6 3 9 0s6-3 9 0" stroke="#3FC1B0" stroke-width="2" stroke-linecap="round"/><path d="M12 3v10M8 7l4-4 4 4" stroke="#3FC1B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      PescaGestor
+    </div>
+    <div class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">No porto</span></div>
+  </div>
+
+  <!-- INÍCIO -->
+  <section class="screen active" id="screen-inicio">
+    <div class="panel">
+      <div class="vessel-name" id="vesselNameDisplay">Minha Embarcação</div>
+      <div class="vessel-sub" id="vesselSub">Nenhuma viagem em andamento</div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="label">Faturamento</div><div class="value pos" id="kpiFat">R$ 0</div></div>
+        <div class="kpi"><div class="label">Despesas</div><div class="value neg" id="kpiDesp">R$ 0</div></div>
+        <div class="kpi"><div class="label">Resultado</div><div class="value" id="kpiResult">R$ 0</div></div>
+        <div class="kpi"><div class="label">Produção</div><div class="value" id="kpiProd">0 kg</div></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnStartTrip" onclick="startTrip()">🚤 Iniciar viagem</button>
+      </div>
+      <div class="btn-row" id="endTripRow" style="display:none;">
+        <button class="btn btn-danger" onclick="endTrip()">🏁 Finalizar viagem</button>
+      </div>
+    </div>
+
+    <div class="section-title">Sua embarcação</div>
+    <div class="form">
+      <div class="field">
+        <label>Nome da embarcação</label>
+        <input type="text" id="vesselNameInput" placeholder="Ex: Estrela do Mar" oninput="saveVesselName()">
+      </div>
+    </div>
+
+    <div class="section-title">Histórico de viagens</div>
+    <div class="year-stat">
+      <span>Viagens em <span id="statYearLabel"></span></span>
+      <b id="statYearCount">0</b>
+    </div>
+    <div class="filter-row">
+      <select id="filterYear" onchange="onFilterChange()"></select>
+      <select id="filterMonth" onchange="onFilterChange()">
+        <option value="">Mês (todos)</option>
+        <option value="0">Janeiro</option><option value="1">Fevereiro</option><option value="2">Março</option>
+        <option value="3">Abril</option><option value="4">Maio</option><option value="5">Junho</option>
+        <option value="6">Julho</option><option value="7">Agosto</option><option value="8">Setembro</option>
+        <option value="9">Outubro</option><option value="10">Novembro</option><option value="11">Dezembro</option>
+      </select>
+    </div>
+    <div class="filter-row">
+      <input type="date" id="filterFrom" onchange="onFilterChange()">
+      <input type="date" id="filterTo" onchange="onFilterChange()">
+    </div>
+    <div id="historyList" class="card-list"><div class="empty">Nenhuma viagem finalizada ainda.</div></div>
+  </section>
+
+  <!-- DESPESAS -->
+  <section class="screen" id="screen-despesas">
+    <h2 style="font-size:19px;margin-bottom:14px;">Despesas da viagem</h2>
+    <div class="form">
+      <div class="field">
+        <label>Categoria</label>
+        <select id="despCategoria">
+          <option>Combustível</option>
+          <option>Óleo</option>
+          <option>Gelo</option>
+          <option>Isca</option>
+          <option>Rancho</option>
+          <option>Água</option>
+          <option>Manutenção</option>
+          <option>Pescadores</option>
+          <option>Porto</option>
+          <option>Transporte</option>
+          <option>Outros</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Valor (R$)</label>
+          <input type="number" id="despValor" placeholder="0,00" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>Descrição (opcional)</label>
+          <input type="text" id="despDesc" placeholder="Ex: 200L diesel">
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="addDespesa()">+ Adicionar despesa</button>
+    </div>
+    <div class="section-title">Lançamentos <span id="totalDespesasLabel"></span></div>
+    <div id="despesasList" class="card-list"><div class="empty">Nenhuma despesa lançada nesta viagem.</div></div>
+  </section>
+
+  <!-- PRODUÇÃO -->
+  <section class="screen" id="screen-producao">
+    <h2 style="font-size:19px;margin-bottom:14px;">Produção da viagem</h2>
+    <div class="form">
+      <div class="field">
+        <label>Espécie</label>
+        <input type="text" id="prodEspecie" placeholder="Ex: Atum, Dourado...">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Peso (kg)</label>
+          <input type="number" id="prodPeso" placeholder="0" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label>Preço/kg (R$)</label>
+          <input type="number" id="prodPreco" placeholder="0,00" inputmode="decimal">
+        </div>
+      </div>
+      <div class="field">
+        <label>Comprador (opcional)</label>
+        <input type="text" id="prodComprador" placeholder="Ex: Peixaria Central">
+      </div>
+      <button class="btn btn-primary" onclick="addProducao()">+ Adicionar produção</button>
+    </div>
+    <div class="section-title">Lançamentos <span id="totalProducaoLabel"></span></div>
+    <div id="producaoList" class="card-list"><div class="empty">Nenhuma produção lançada nesta viagem.</div></div>
+  </section>
+
+  <!-- RESULTADO -->
+  <section class="screen" id="screen-resultado">
+    <h2 style="font-size:19px;margin-bottom:14px;">Resultado da viagem</h2>
+    <table class="result-table">
+      <tr><td>Dias no mar</td><td id="resDias">0</td></tr>
+      <tr><td>Produção total</td><td id="resProducao">0 kg</td></tr>
+      <tr><td>Faturamento</td><td id="resFat">R$ 0</td></tr>
+      <tr><td>Despesas</td><td id="resDesp">R$ 0</td></tr>
+      <tr class="total"><td>Lucro / Resultado</td><td id="resLucro">R$ 0</td></tr>
+      <tr><td>Custo por dia</td><td id="resCustoDia">R$ 0</td></tr>
+      <tr><td>Faturamento por dia</td><td id="resFatDia">R$ 0</td></tr>
+      <tr><td>Lucro por dia</td><td id="resLucroDia">R$ 0</td></tr>
+    </table>
+    <div class="empty" id="noTripMsg">Inicie uma viagem na aba Início para ver os resultados aqui.</div>
+  </section>
+
+  <button class="mic-fab" id="micFab" onclick="toggleListening()" aria-label="Falar">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 003-3V6a3 3 0 00-6 0v6a3 3 0 003 3z" stroke="#06201C" stroke-width="2"/><path d="M6 11v1a6 6 0 0012 0v-1M12 18v3" stroke="#06201C" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+
+  <nav class="tabbar">
+    <button class="tab active" data-tab="inicio" onclick="showTab('inicio')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7v9a1 1 0 01-1 1h-5v-6H10v6H5a1 1 0 01-1-1z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      Início
+    </button>
+    <button class="tab" data-tab="despesas" onclick="showTab('despesas')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M3 10h18M6 6h12a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V8a2 2 0 012-2z" stroke="currentColor" stroke-width="1.7"/></svg>
+      Despesas
+    </button>
+    <button class="tab" data-tab="producao" onclick="showTab('producao')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 15c3 3 6 3 9 0s6-3 9 0" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="8" r="3" stroke="currentColor" stroke-width="1.7"/></svg>
+      Produção
+    </button>
+    <button class="tab" data-tab="resultado" onclick="showTab('resultado')">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 20V10M11 20V4M18 20v-7" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+      Resultado
+    </button>
+  </nav>
+
+</div>
+
+<div class="voice-overlay" id="voiceOverlay" onclick="if(event.target===this) closeVoice()">
+  <div class="voice-sheet">
+    <div class="voice-status" id="voiceStatus">🎤 Ouvindo... fale, por exemplo: "gastei 200 reais com combustível" ou "vendi 50 quilos de atum a 20 reais o quilo"</div>
+    <div class="voice-transcript" id="voiceTranscript">—</div>
+    <div id="voiceParsedBox"></div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="closeVoice()">Cancelar</button>
+      <button class="btn btn-primary" id="voiceConfirmBtn" style="display:none;" onclick="confirmVoiceAction()">✓ Confirmar e lançar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DB_KEY = 'pescagestor_data_v1';
+  let db = JSON.parse(localStorage.getItem(DB_KEY) || 'null') || {
+    vesselName: '',
+    currentTrip: null, // {startDate, despesas:[], producao:[]}
+    history: []
+  };
+
+  function save(){ localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+
+  function fmt(n){ return 'R$ ' + (n||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+  function showTab(name){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('screen-'+name).classList.add('active');
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  }
+
+  function daysBetween(start){
+    const d1 = new Date(start); const d2 = new Date();
+    return Math.max(1, Math.floor((d2 - d1) / 86400000) + 1);
+  }
+
+  function startTrip(){
+    if(db.currentTrip){ alert('Já existe uma viagem em andamento.'); return; }
+    db.currentTrip = { startDate: new Date().toISOString(), despesas: [], producao: [] };
+    save(); render();
+  }
+
+  function endTrip(){
+    if(!db.currentTrip) return;
+    if(!confirm('Finalizar esta viagem e salvar no histórico?')) return;
+    const t = db.currentTrip;
+    const totals = computeTotals(t);
+    db.history.unshift({
+      startDate: t.startDate, endDate: new Date().toISOString(),
+      dias: daysBetween(t.startDate), ...totals
+    });
+    db.currentTrip = null;
+    save(); render();
+    showTab('inicio');
+  }
+
+  function computeTotals(t){
+    const despesas = (t.despesas||[]).reduce((s,x)=>s+x.valor,0);
+    const producaoKg = (t.producao||[]).reduce((s,x)=>s+x.peso,0);
+    const faturamento = (t.producao||[]).reduce((s,x)=>s+(x.peso*x.preco),0);
+    return { despesas, producaoKg, faturamento, lucro: faturamento - despesas };
+  }
+
+  function saveVesselName(){
+    db.vesselName = document.getElementById('vesselNameInput').value;
+    save();
+    document.getElementById('vesselNameDisplay').textContent = db.vesselName || 'Minha Embarcação';
+  }
+
+  function addDespesa(){
+    if(!db.currentTrip){ alert('Inicie uma viagem primeiro (aba Início).'); return; }
+    const categoria = document.getElementById('despCategoria').value;
+    const valor = parseFloat(document.getElementById('despValor').value);
+    const desc = document.getElementById('despDesc').value;
+    if(!valor || valor <= 0){ alert('Informe um valor válido.'); return; }
+    db.currentTrip.despesas.push({categoria, valor, desc, id: Date.now()});
+    document.getElementById('despValor').value = '';
+    document.getElementById('despDesc').value = '';
+    save(); render();
+  }
+
+  function removeDespesa(id){
+    db.currentTrip.despesas = db.currentTrip.despesas.filter(d => d.id !== id);
+    save(); render();
+  }
+
+  function addProducao(){
+    if(!db.currentTrip){ alert('Inicie uma viagem primeiro (aba Início).'); return; }
+    const especie = document.getElementById('prodEspecie').value.trim();
+    const peso = parseFloat(document.getElementById('prodPeso').value);
+    const preco = parseFloat(document.getElementById('prodPreco').value);
+    const comprador = document.getElementById('prodComprador').value;
+    if(!especie || !peso || !preco){ alert('Preencha espécie, peso e preço.'); return; }
+    db.currentTrip.producao.push({especie, peso, preco, comprador, id: Date.now()});
+    document.getElementById('prodEspecie').value = '';
+    document.getElementById('prodPeso').value = '';
+    document.getElementById('prodPreco').value = '';
+    document.getElementById('prodComprador').value = '';
+    save(); render();
+  }
+
+  function removeProducao(id){
+    db.currentTrip.producao = db.currentTrip.producao.filter(p => p.id !== id);
+    save(); render();
+  }
+
+  function render(){
+    document.getElementById('vesselNameInput').value = db.vesselName || '';
+    document.getElementById('vesselNameDisplay').textContent = db.vesselName || 'Minha Embarcação';
+
+    const hasTrip = !!db.currentTrip;
+    document.getElementById('statusDot').classList.toggle('off', !hasTrip);
+    document.getElementById('statusText').textContent = hasTrip ? 'No mar' : 'No porto';
+    document.getElementById('btnStartTrip').style.display = hasTrip ? 'none' : 'flex';
+    document.getElementById('endTripRow').style.display = hasTrip ? 'flex' : 'none';
+
+    let totals = {despesas:0, producaoKg:0, faturamento:0, lucro:0};
+    if(hasTrip){
+      totals = computeTotals(db.currentTrip);
+      const dias = daysBetween(db.currentTrip.startDate);
+      document.getElementById('vesselSub').textContent = `No mar há ${dias} dia(s)`;
+    } else {
+      document.getElementById('vesselSub').textContent = 'Nenhuma viagem em andamento';
+    }
+
+    document.getElementById('kpiFat').textContent = fmt(totals.faturamento);
+    document.getElementById('kpiDesp').textContent = fmt(totals.despesas);
+    document.getElementById('kpiResult').textContent = fmt(totals.lucro);
+    document.getElementById('kpiResult').className = 'value ' + (totals.lucro >= 0 ? 'pos' : 'neg');
+    document.getElementById('kpiProd').textContent = (totals.producaoKg||0).toLocaleString('pt-BR') + ' kg';
+
+    // despesas list
+    const dl = document.getElementById('despesasList');
+    const desps = hasTrip ? db.currentTrip.despesas : [];
+    document.getElementById('totalDespesasLabel').textContent = desps.length ? ('· ' + fmt(totals.despesas)) : '';
+    dl.innerHTML = desps.length ? '' : '<div class="empty">Nenhuma despesa lançada nesta viagem.</div>';
+    desps.slice().reverse().forEach(d => {
+      const el = document.createElement('div');
+      el.className = 'row-item';
+      el.innerHTML = `<div><div class="ri-main">${d.categoria}</div><div class="ri-sub">${d.desc||''}</div></div>
+        <div style="display:flex;align-items:center;"><div class="ri-val">${fmt(d.valor)}</div><button class="ri-del" onclick="removeDespesa(${d.id})">✕</button></div>`;
+      dl.appendChild(el);
+    });
+
+    // producao list
+    const pl = document.getElementById('producaoList');
+    const prods = hasTrip ? db.currentTrip.producao : [];
+    document.getElementById('totalProducaoLabel').textContent = prods.length ? ('· ' + (totals.producaoKg||0).toLocaleString('pt-BR') + ' kg') : '';
+    pl.innerHTML = prods.length ? '' : '<div class="empty">Nenhuma produção lançada nesta viagem.</div>';
+    prods.slice().reverse().forEach(p => {
+      const el = document.createElement('div');
+      el.className = 'row-item';
+      el.innerHTML = `<div><div class="ri-main">${p.especie} — ${p.peso}kg</div><div class="ri-sub">${p.comprador||'Sem comprador'} · R$${p.preco}/kg</div></div>
+        <div style="display:flex;align-items:center;"><div class="ri-val">${fmt(p.peso*p.preco)}</div><button class="ri-del" onclick="removeProducao(${p.id})">✕</button></div>`;
+      pl.appendChild(el);
+    });
+
+    // resultado
+    document.getElementById('noTripMsg').style.display = hasTrip ? 'none' : 'block';
+    document.querySelector('.result-table').style.display = hasTrip ? 'table' : 'none';
+    if(hasTrip){
+      const dias = daysBetween(db.currentTrip.startDate);
+      document.getElementById('resDias').textContent = dias;
+      document.getElementById('resProducao').textContent = (totals.producaoKg||0).toLocaleString('pt-BR') + ' kg';
+      document.getElementById('resFat').textContent = fmt(totals.faturamento);
+      document.getElementById('resDesp').textContent = fmt(totals.despesas);
+      document.getElementById('resLucro').textContent = fmt(totals.lucro);
+      document.getElementById('resCustoDia').textContent = fmt(totals.despesas/dias);
+      document.getElementById('resFatDia').textContent = fmt(totals.faturamento/dias);
+      document.getElementById('resLucroDia').textContent = fmt(totals.lucro/dias);
+    }
+
+    // stat do ano atual
+    const curYear = new Date().getFullYear();
+    document.getElementById('statYearLabel').textContent = curYear;
+    document.getElementById('statYearCount').textContent = db.history.filter(h => new Date(h.startDate).getFullYear() === curYear).length;
+
+    // history com filtros
+    populateYearFilters();
+    const filtered = getFilteredHistory();
+    const hl = document.getElementById('historyList');
+    hl.innerHTML = filtered.length ? '' : '<div class="empty">Nenhuma viagem encontrada para esse filtro.</div>';
+    filtered.forEach((h, i) => {
+      const el = document.createElement('div');
+      el.className = 'history-item';
+      const date = new Date(h.startDate).toLocaleDateString('pt-BR');
+      el.innerHTML = `<div class="h-top"><span>Viagem de ${date} · ${h.dias} dias</span><span style="color:${h.lucro>=0?'#3FC1B0':'#E0654F'}">${fmt(h.lucro)}</span></div>
+        <div class="h-sub">Produção: ${h.producaoKg.toLocaleString('pt-BR')} kg · Faturamento: ${fmt(h.faturamento)} · Despesas: ${fmt(h.despesas)}</div>`;
+      hl.appendChild(el);
+    });
+  }
+
+  // ---------- FILTROS DE HISTÓRICO ----------
+  function populateYearFilters(){
+    const years = Array.from(new Set(db.history.map(h => new Date(h.startDate).getFullYear())));
+    years.sort((a,b)=>b-a);
+    const currentYear = new Date().getFullYear();
+    if(!years.includes(currentYear)) years.unshift(currentYear);
+    const sel = document.getElementById('filterYear');
+    const prevVal = sel.value;
+    sel.innerHTML = '<option value="">Ano (todos)</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
+    sel.value = prevVal || String(currentYear);
+  }
+
+  function onFilterChange(){ render(); }
+
+  function getFilteredHistory(){
+    const year = document.getElementById('filterYear').value;
+    const month = document.getElementById('filterMonth').value;
+    const from = document.getElementById('filterFrom').value;
+    const to = document.getElementById('filterTo').value;
+    return db.history.filter(h => {
+      const d = new Date(h.startDate);
+      if(year && d.getFullYear() !== parseInt(year)) return false;
+      if(month !== '' && d.getMonth() !== parseInt(month)) return false;
+      if(from && d < new Date(from)) return false;
+      if(to && d > new Date(to + 'T23:59:59')) return false;
+      return true;
+    });
+  }
+
+  // ---------- COMANDO DE VOZ ----------
+  let recognition = null;
+  let voicePending = null; // {type, ...dados}
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  function toggleListening(){
+    if(!SpeechRec){
+      alert('Reconhecimento de voz não é suportado neste navegador. Use o Google Chrome no Android.');
+      return;
+    }
+    openVoice();
+    startListening();
+  }
+
+  function openVoice(){
+    document.getElementById('voiceOverlay').classList.add('open');
+    document.getElementById('voiceTranscript').textContent = '—';
+    document.getElementById('voiceParsedBox').innerHTML = '';
+    document.getElementById('voiceConfirmBtn').style.display = 'none';
+    document.getElementById('voiceStatus').textContent = '🎤 Ouvindo... fale, por exemplo: "gastei 200 reais com combustível" ou "vendi 50 quilos de atum a 20 reais o quilo"';
+  }
+  function closeVoice(){
+    document.getElementById('voiceOverlay').classList.remove('open');
+    if(recognition){ try{ recognition.stop(); }catch(e){} }
+    document.getElementById('micFab').classList.remove('listening');
+    voicePending = null;
+  }
+
+  function startListening(){
+    recognition = new SpeechRec();
+    recognition.lang = 'pt-BR';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    document.getElementById('micFab').classList.add('listening');
+    recognition.onresult = (e) => {
+      const text = e.results[0][0].transcript;
+      document.getElementById('voiceTranscript').textContent = '"' + text + '"';
+      document.getElementById('voiceStatus').textContent = 'Entendi o seguinte — confira antes de lançar:';
+      handleVoiceText(text);
+    };
+    recognition.onerror = () => {
+      document.getElementById('voiceStatus').textContent = 'Não consegui ouvir direito. Tente novamente.';
+      document.getElementById('micFab').classList.remove('listening');
+    };
+    recognition.onend = () => { document.getElementById('micFab').classList.remove('listening'); };
+    recognition.start();
+  }
+
+  function toNum(str){
+    return parseFloat(str.replace(/\./g,'').replace(',', '.'));
+  }
+
+  function handleVoiceText(text){
+    const t = text.toLowerCase();
+    const box = document.getElementById('voiceParsedBox');
+    const confirmBtn = document.getElementById('voiceConfirmBtn');
+
+    const catMap = {
+      'Combustível': ['combustível','combustivel','diesel','gasolina'],
+      'Óleo': ['óleo','oleo','lubrificante'],
+      'Gelo': ['gelo'],
+      'Isca': ['isca'],
+      'Rancho': ['rancho','mantimento','comida','alimentação','alimentacao'],
+      'Água': ['água','agua'],
+      'Manutenção': ['manutenção','manutencao','conserto','reparo'],
+      'Pescadores': ['pescador','pescadores','tripulação','tripulacao','diária','diaria'],
+      'Porto': ['porto','atracação','atracacao'],
+      'Transporte': ['transporte','frete'],
+    };
+
+    const isProducao = /\bvend|pesqu|produç|producao|kg de|quilos? de\b/.test(t) && /\bkg|quilos?\b/.test(t);
+
+    if(isProducao){
+      const pesoMatch = t.match(/(\d+[.,]?\d*)\s*(kg|quilos?)/);
+      const precoMatch = t.match(/(\d+[.,]?\d*)\s*reais?\s*(o|por|cada)?\s*(kg|quilo)/) || t.match(/a\s*(\d+[.,]?\d*)\s*reais?/);
+      const especieMatch = t.match(/(?:kg|quilos?)\s*(?:de)?\s*([a-zà-úãõâêô]+)/);
+      const peso = pesoMatch ? toNum(pesoMatch[1]) : null;
+      const preco = precoMatch ? toNum(precoMatch[1]) : null;
+      const especie = especieMatch && especieMatch[1] ? especieMatch[1].charAt(0).toUpperCase()+especieMatch[1].slice(1) : 'Peixe';
+
+      if(peso){
+        voicePending = { type:'producao', especie, peso, preco: preco||0 };
+        box.innerHTML = `<div class="voice-parsed"><div class="vp-title">Produção detectada</div>
+          <div class="vp-main">${especie} — ${peso} kg</div>
+          <div class="vp-sub">${preco ? ('R$ '+preco+'/kg · Total R$ '+(peso*preco).toFixed(2)) : 'Preço não identificado — edite depois na aba Produção'}</div></div>`;
+        confirmBtn.style.display = 'flex';
+        return;
+      }
+    }
+
+    // despesa
+    let categoria = 'Outros';
+    for(const [cat, keys] of Object.entries(catMap)){
+      if(keys.some(k => t.includes(k))){ categoria = cat; break; }
+    }
+    const valorMatch = t.match(/(\d+[.,]?\d*)\s*reais?/) || t.match(/r\$\s*(\d+[.,]?\d*)/);
+    const valor = valorMatch ? toNum(valorMatch[1]) : null;
+
+    if(valor){
+      voicePending = { type:'despesa', categoria, valor, desc: text };
+      box.innerHTML = `<div class="voice-parsed"><div class="vp-title">Despesa detectada</div>
+        <div class="vp-main">${categoria} — R$ ${valor.toFixed(2)}</div>
+        <div class="vp-sub">"${text}"</div></div>`;
+      confirmBtn.style.display = 'flex';
+    } else {
+      box.innerHTML = `<div class="voice-parsed"><div class="vp-title">Não identifiquei um valor</div>
+        <div class="vp-main">Tente falar novamente</div>
+        <div class="vp-sub">Ex: "gastei 150 reais com gelo" ou "vendi 30 kg de dourado a 18 reais o kg"</div></div>`;
+    }
+  }
+
+  function confirmVoiceAction(){
+    if(!voicePending) return;
+    if(!db.currentTrip){
+      alert('Inicie uma viagem primeiro (aba Início) para lançar despesas ou produção.');
+      closeVoice();
+      return;
+    }
+    if(voicePending.type === 'despesa'){
+      db.currentTrip.despesas.push({categoria: voicePending.categoria, valor: voicePending.valor, desc: voicePending.desc, id: Date.now()});
+    } else if(voicePending.type === 'producao'){
+      db.currentTrip.producao.push({especie: voicePending.especie, peso: voicePending.peso, preco: voicePending.preco, comprador:'', id: Date.now()});
+    }
+    save(); render();
+    closeVoice();
+  }
+
+  render();
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(()=>{});
+    });
+  }
+</script>
+</body>
+</html>
