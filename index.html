@@ -861,7 +861,7 @@
   function updateLocLabel(){
     document.getElementById('weatherLocLabel').textContent = '📍 ' + (db.location ? db.location.name : '—');
     const tideLink = document.getElementById('tideLink');
-    if(db.location && db.location.admin1 && db.location.country === 'Brasil'){
+    if(db.location && db.location.admin1 && db.location.countryCode === 'BR'){
       const url = `https://tabuademares.com/br/${slugify(db.location.admin1)}/${slugify(db.location.name)}`;
       tideLink.href = url;
       tideLink.textContent = `🌊 Ver tábua de maré de ${db.location.name}`;
@@ -886,7 +886,7 @@
         div.style.cursor = 'pointer';
         div.textContent = `${res.name}${res.admin1 ? ', '+res.admin1 : ''} — ${res.country}`;
         div.onclick = () => {
-          db.location = { lat: res.latitude, lon: res.longitude, name: res.name, admin1: res.admin1, country: res.country };
+          db.location = { lat: res.latitude, lon: res.longitude, name: res.name, admin1: res.admin1, countryCode: res.country_code };
           save(); updateLocLabel(); fetchWeather(res.latitude, res.longitude);
           box.innerHTML = ''; document.getElementById('locSearchInput').value = '';
         };
