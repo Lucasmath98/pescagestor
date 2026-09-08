@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pescagestor-v1';
+const CACHE_NAME = 'pescagestor-v2';
 const FILES = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
@@ -7,7 +7,10 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
-  e.waitUntil(clients.claim());
+  e.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+  );
+  clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
