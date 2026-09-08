@@ -27,9 +27,13 @@
 
   .topbar{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px 4px; }
   .brand{ display:flex; align-items:center; gap:8px; font-family:'Fraunces',serif; font-weight:700; font-size:17px; color:var(--teal); }
-  .status-pill{ display:inline-flex; align-items:center; gap:6px; background:var(--surface); border-radius:20px; padding:6px 12px; font-size:12px; font-weight:600; }
-  .dot{ width:8px; height:8px; border-radius:50%; background:var(--teal); }
-  .dot.off{ background:var(--text-dim); }
+  .plan-badge{ background:var(--surface); border:1px solid var(--track); border-radius:20px; padding:6px 12px; font-size:11.5px; font-weight:600; color:var(--gold); display:flex; align-items:center; gap:5px; }
+
+  .vessel-chips{ display:flex; gap:8px; padding:12px 18px 4px; overflow-x:auto; scrollbar-width:none; }
+  .vessel-chips::-webkit-scrollbar{ display:none; }
+  .chip{ flex:0 0 auto; background:var(--card); border:1px solid var(--track); border-radius:20px; padding:8px 14px; font-size:12.5px; font-weight:600; color:var(--text-soft); white-space:nowrap; }
+  .chip.active{ background:var(--teal); color:#06201C; border-color:var(--teal); }
+  .chip.add{ color:var(--gold); border-color:var(--gold); border-style:dashed; }
 
   .screen{ display:none; padding:14px 18px 10px; }
   .screen.active{ display:block; }
@@ -82,6 +86,7 @@
   .history-item{ background:var(--card); border:1px solid var(--track); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
   .history-item .h-top{ display:flex; justify-content:space-between; font-size:13px; font-weight:700; margin-bottom:4px; }
   .history-item .h-sub{ font-size:11.5px; color:var(--text-dim); }
+  .history-item .h-vessel{ display:inline-block; background:var(--surface); color:var(--teal); font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:10px; margin-bottom:6px; }
 
   .filter-row{ display:flex; gap:8px; margin-bottom:12px; }
   .filter-row select, .filter-row input{ flex:1; background:var(--card); border:1px solid var(--track); border-radius:9px; padding:9px 10px; color:var(--text); font-size:12.5px; }
@@ -92,15 +97,24 @@
   .mic-fab.listening{ animation:pulseMic 1.2s ease-in-out infinite; background:var(--red); }
   @keyframes pulseMic{ 0%{box-shadow:0 0 0 0 rgba(224,101,79,0.55);} 70%{box-shadow:0 0 0 16px rgba(224,101,79,0);} 100%{box-shadow:0 0 0 0 rgba(224,101,79,0);} }
 
-  .voice-overlay{ position:fixed; inset:0; background:rgba(3,10,18,0.8); z-index:100; display:none; align-items:flex-end; justify-content:center; }
-  .voice-overlay.open{ display:flex; }
-  .voice-sheet{ width:100%; max-width:var(--app-w); background:var(--bg-elevated); border-radius:20px 20px 0 0; padding:22px 20px 26px; }
+  .voice-overlay, .plans-overlay{ position:fixed; inset:0; background:rgba(3,10,18,0.8); z-index:100; display:none; align-items:flex-end; justify-content:center; }
+  .voice-overlay.open, .plans-overlay.open{ display:flex; }
+  .voice-sheet, .plans-sheet{ width:100%; max-width:var(--app-w); background:var(--bg-elevated); border-radius:20px 20px 0 0; padding:22px 20px 26px; max-height:88vh; overflow-y:auto; }
   .voice-status{ text-align:center; font-size:13.5px; color:var(--text-soft); margin-bottom:14px; }
   .voice-transcript{ background:var(--surface); border-radius:12px; padding:14px; font-size:14px; margin-bottom:16px; min-height:40px; }
   .voice-parsed{ background:var(--card); border:1px solid var(--teal); border-radius:12px; padding:14px; margin-bottom:16px; }
   .voice-parsed .vp-title{ font-size:11.5px; color:var(--teal); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:6px; }
   .voice-parsed .vp-main{ font-size:15px; font-weight:700; margin-bottom:2px; }
   .voice-parsed .vp-sub{ font-size:12px; color:var(--text-dim); }
+
+  .sheet-handle{ width:36px;height:4px;border-radius:3px; background:rgba(255,255,255,0.3); margin:0 auto 16px; }
+  .plan-card{ background:var(--card); border:2px solid var(--track); border-radius:16px; padding:18px; margin-bottom:14px; position:relative; }
+  .plan-card.current{ border-color:var(--teal); }
+  .plan-card .pc-tag{ position:absolute; top:-10px; right:16px; background:var(--teal); color:#06201C; font-size:10.5px; font-weight:800; padding:3px 10px; border-radius:8px; }
+  .plan-card h3{ font-size:16px; margin-bottom:4px; }
+  .plan-card .pc-limit{ font-size:12.5px; color:var(--text-soft); margin-bottom:10px; }
+  .plan-card .pc-price{ font-family:'Fraunces',serif; font-size:24px; color:var(--teal); margin-bottom:12px; }
+  .plan-card .pc-price span{ font-size:12px; color:var(--text-dim); font-family:'Public Sans',sans-serif; }
 </style>
 </head>
 <body>
@@ -111,35 +125,26 @@
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 15c3 3 6 3 9 0s6-3 9 0" stroke="#3FC1B0" stroke-width="2" stroke-linecap="round"/><path d="M12 3v10M8 7l4-4 4 4" stroke="#3FC1B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       PescaGestor
     </div>
-    <div class="status-pill"><span class="dot" id="statusDot"></span><span id="statusText">No porto</span></div>
+    <button class="plan-badge" onclick="openPlans()" id="planBadge">⭐ Plano</button>
   </div>
+
+  <div class="vessel-chips" id="vesselChips"></div>
 
   <!-- INÍCIO -->
   <section class="screen active" id="screen-inicio">
     <div class="panel">
-      <div class="vessel-name" id="vesselNameDisplay">Minha Embarcação</div>
-      <div class="vessel-sub" id="vesselSub">Nenhuma viagem em andamento</div>
+      <div class="vessel-name" id="vesselNameDisplay">Todos os barcos</div>
+      <div class="vessel-sub" id="vesselSub"></div>
       <div class="kpi-grid">
         <div class="kpi"><div class="label">Faturamento</div><div class="value pos" id="kpiFat">R$ 0</div></div>
         <div class="kpi"><div class="label">Despesas</div><div class="value neg" id="kpiDesp">R$ 0</div></div>
         <div class="kpi"><div class="label">Resultado</div><div class="value" id="kpiResult">R$ 0</div></div>
         <div class="kpi"><div class="label">Produção</div><div class="value" id="kpiProd">0 kg</div></div>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-primary" id="btnStartTrip" onclick="startTrip()">🚤 Iniciar viagem</button>
-      </div>
-      <div class="btn-row" id="endTripRow" style="display:none;">
-        <button class="btn btn-danger" onclick="endTrip()">🏁 Finalizar viagem</button>
-      </div>
+      <div class="btn-row" id="tripActionRow"></div>
     </div>
 
-    <div class="section-title">Sua embarcação</div>
-    <div class="form">
-      <div class="field">
-        <label>Nome da embarcação</label>
-        <input type="text" id="vesselNameInput" placeholder="Ex: Estrela do Mar" oninput="saveVesselName()">
-      </div>
-    </div>
+    <div id="vesselNameEditBox"></div>
 
     <div class="section-title">Histórico de viagens</div>
     <div class="year-stat">
@@ -166,71 +171,51 @@
   <!-- DESPESAS -->
   <section class="screen" id="screen-despesas">
     <h2 style="font-size:19px;margin-bottom:14px;">Despesas da viagem</h2>
-    <div class="form">
-      <div class="field">
-        <label>Categoria</label>
-        <select id="despCategoria">
-          <option>Combustível</option>
-          <option>Óleo</option>
-          <option>Gelo</option>
-          <option>Isca</option>
-          <option>Rancho</option>
-          <option>Água</option>
-          <option>Manutenção</option>
-          <option>Pescadores</option>
-          <option>Porto</option>
-          <option>Transporte</option>
-          <option>Outros</option>
-        </select>
-      </div>
-      <div class="field-row">
+    <div id="despesasNoVessel" class="empty" style="display:none;">Selecione um barco específico acima para lançar despesas.</div>
+    <div id="despesasContent">
+      <div class="form">
         <div class="field">
-          <label>Valor (R$)</label>
-          <input type="number" id="despValor" placeholder="0,00" inputmode="decimal">
+          <label>Categoria</label>
+          <select id="despCategoria">
+            <option>Combustível</option><option>Óleo</option><option>Gelo</option><option>Isca</option>
+            <option>Rancho</option><option>Água</option><option>Manutenção</option><option>Pescadores</option>
+            <option>Porto</option><option>Transporte</option><option>Outros</option>
+          </select>
         </div>
-        <div class="field">
-          <label>Descrição (opcional)</label>
-          <input type="text" id="despDesc" placeholder="Ex: 200L diesel">
+        <div class="field-row">
+          <div class="field"><label>Valor (R$)</label><input type="number" id="despValor" placeholder="0,00" inputmode="decimal"></div>
+          <div class="field"><label>Descrição (opcional)</label><input type="text" id="despDesc" placeholder="Ex: 200L diesel"></div>
         </div>
+        <button class="btn btn-primary" onclick="addDespesa()">+ Adicionar despesa</button>
       </div>
-      <button class="btn btn-primary" onclick="addDespesa()">+ Adicionar despesa</button>
+      <div class="section-title">Lançamentos <span id="totalDespesasLabel"></span></div>
+      <div id="despesasList" class="card-list"><div class="empty">Nenhuma despesa lançada nesta viagem.</div></div>
     </div>
-    <div class="section-title">Lançamentos <span id="totalDespesasLabel"></span></div>
-    <div id="despesasList" class="card-list"><div class="empty">Nenhuma despesa lançada nesta viagem.</div></div>
   </section>
 
   <!-- PRODUÇÃO -->
   <section class="screen" id="screen-producao">
     <h2 style="font-size:19px;margin-bottom:14px;">Produção da viagem</h2>
-    <div class="form">
-      <div class="field">
-        <label>Espécie</label>
-        <input type="text" id="prodEspecie" placeholder="Ex: Atum, Dourado...">
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Peso (kg)</label>
-          <input type="number" id="prodPeso" placeholder="0" inputmode="decimal">
+    <div id="producaoNoVessel" class="empty" style="display:none;">Selecione um barco específico acima para lançar produção.</div>
+    <div id="producaoContent">
+      <div class="form">
+        <div class="field"><label>Espécie</label><input type="text" id="prodEspecie" placeholder="Ex: Atum, Dourado..."></div>
+        <div class="field-row">
+          <div class="field"><label>Peso (kg)</label><input type="number" id="prodPeso" placeholder="0" inputmode="decimal"></div>
+          <div class="field"><label>Preço/kg (R$)</label><input type="number" id="prodPreco" placeholder="0,00" inputmode="decimal"></div>
         </div>
-        <div class="field">
-          <label>Preço/kg (R$)</label>
-          <input type="number" id="prodPreco" placeholder="0,00" inputmode="decimal">
-        </div>
+        <div class="field"><label>Comprador (opcional)</label><input type="text" id="prodComprador" placeholder="Ex: Peixaria Central"></div>
+        <button class="btn btn-primary" onclick="addProducao()">+ Adicionar produção</button>
       </div>
-      <div class="field">
-        <label>Comprador (opcional)</label>
-        <input type="text" id="prodComprador" placeholder="Ex: Peixaria Central">
-      </div>
-      <button class="btn btn-primary" onclick="addProducao()">+ Adicionar produção</button>
+      <div class="section-title">Lançamentos <span id="totalProducaoLabel"></span></div>
+      <div id="producaoList" class="card-list"><div class="empty">Nenhuma produção lançada nesta viagem.</div></div>
     </div>
-    <div class="section-title">Lançamentos <span id="totalProducaoLabel"></span></div>
-    <div id="producaoList" class="card-list"><div class="empty">Nenhuma produção lançada nesta viagem.</div></div>
   </section>
 
   <!-- RESULTADO -->
   <section class="screen" id="screen-resultado">
     <h2 style="font-size:19px;margin-bottom:14px;">Resultado da viagem</h2>
-    <table class="result-table">
+    <table class="result-table" style="display:none;">
       <tr><td>Dias no mar</td><td id="resDias">0</td></tr>
       <tr><td>Produção total</td><td id="resProducao">0 kg</td></tr>
       <tr><td>Faturamento</td><td id="resFat">R$ 0</td></tr>
@@ -240,7 +225,7 @@
       <tr><td>Faturamento por dia</td><td id="resFatDia">R$ 0</td></tr>
       <tr><td>Lucro por dia</td><td id="resLucroDia">R$ 0</td></tr>
     </table>
-    <div class="empty" id="noTripMsg">Inicie uma viagem na aba Início para ver os resultados aqui.</div>
+    <div class="empty" id="noTripMsg">Nenhuma viagem em andamento no momento.</div>
   </section>
 
   <button class="mic-fab" id="micFab" onclick="toggleListening()" aria-label="Falar">
@@ -270,6 +255,7 @@
 
 <div class="voice-overlay" id="voiceOverlay" onclick="if(event.target===this) closeVoice()">
   <div class="voice-sheet">
+    <div class="sheet-handle"></div>
     <div class="voice-status" id="voiceStatus">🎤 Ouvindo... fale, por exemplo: "gastei 200 reais com combustível" ou "vendi 50 quilos de atum a 20 reais o quilo"</div>
     <div class="voice-transcript" id="voiceTranscript">—</div>
     <div id="voiceParsedBox"></div>
@@ -280,17 +266,43 @@
   </div>
 </div>
 
+<div class="plans-overlay" id="plansOverlay" onclick="if(event.target===this) closePlans()">
+  <div class="plans-sheet">
+    <div class="sheet-handle"></div>
+    <h2 style="font-size:19px; margin-bottom:4px;">Escolha seu plano</h2>
+    <p style="font-size:12.5px; color:var(--text-soft); margin:0 0 18px;">O plano define quantos barcos você pode cadastrar no app.</p>
+    <div id="plansList"></div>
+    <button class="btn btn-outline" onclick="closePlans()">Fechar</button>
+  </div>
+</div>
+
 <script>
-  const DB_KEY = 'pescagestor_data_v1';
-  let db = JSON.parse(localStorage.getItem(DB_KEY) || 'null') || {
-    vesselName: '',
-    currentTrip: null, // {startDate, despesas:[], producao:[]}
-    history: []
+  const DB_KEY = 'pescagestor_data_v2';
+  const PLANS = {
+    plan1: { name: 'Plano Básico',   limit: 3,  price: 29.90 },
+    plan2: { name: 'Plano Padrão',   limit: 5,  price: 59.90 },
+    plan3: { name: 'Plano Master',   limit: 10, price: 90.00, limitLabel: '10 barcos ou mais' },
   };
 
-  function save(){ localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+  function loadDB(){
+    let raw = JSON.parse(localStorage.getItem(DB_KEY) || 'null');
+    if(raw) return raw;
+    // migração de versão antiga (1 barco só)
+    const old = JSON.parse(localStorage.getItem('pescagestor_data_v1') || 'null');
+    if(old){
+      return {
+        plan: 'plan1',
+        selectedVesselId: 'all',
+        vessels: [{ id: 'v1', name: old.vesselName || 'Meu Barco', currentTrip: old.currentTrip, history: old.history || [] }]
+      };
+    }
+    return { plan: 'plan1', selectedVesselId: 'all', vessels: [] };
+  }
 
+  let db = loadDB();
+  function save(){ localStorage.setItem(DB_KEY, JSON.stringify(db)); }
   function fmt(n){ return 'R$ ' + (n||0).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function daysBetween(start){ const d1=new Date(start), d2=new Date(); return Math.max(1, Math.floor((d2-d1)/86400000)+1); }
 
   function showTab(name){
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -298,31 +310,79 @@
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   }
 
-  function daysBetween(start){
-    const d1 = new Date(start); const d2 = new Date();
-    return Math.max(1, Math.floor((d2 - d1) / 86400000) + 1);
+  // ---------- BARCOS ----------
+  function getVessel(id){ return db.vessels.find(v => v.id === id); }
+  function selectedVessels(){
+    if(db.selectedVesselId === 'all') return db.vessels;
+    const v = getVessel(db.selectedVesselId);
+    return v ? [v] : db.vessels;
   }
+  function isSpecificVessel(){ return db.selectedVesselId !== 'all' && getVessel(db.selectedVesselId); }
 
-  function startTrip(){
-    if(db.currentTrip){ alert('Já existe uma viagem em andamento.'); return; }
-    db.currentTrip = { startDate: new Date().toISOString(), despesas: [], producao: [] };
+  function selectVessel(id){ db.selectedVesselId = id; save(); render(); }
+
+  function addVesselPrompt(){
+    const limit = PLANS[db.plan].limit;
+    if(db.vessels.length >= limit){
+      alert(`Seu plano atual (${PLANS[db.plan].name}) permite até ${limit} barcos. Aumente seu plano para cadastrar mais.`);
+      openPlans();
+      return;
+    }
+    const name = prompt('Nome do novo barco:');
+    if(!name) return;
+    const id = 'v' + Date.now();
+    db.vessels.push({ id, name, currentTrip: null, history: [] });
+    db.selectedVesselId = id;
     save(); render();
   }
 
-  function endTrip(){
-    if(!db.currentTrip) return;
-    if(!confirm('Finalizar esta viagem e salvar no histórico?')) return;
-    const t = db.currentTrip;
-    const totals = computeTotals(t);
-    db.history.unshift({
-      startDate: t.startDate, endDate: new Date().toISOString(),
-      dias: daysBetween(t.startDate), ...totals
+  function renameVessel(id){
+    const v = getVessel(id); if(!v) return;
+    const name = prompt('Novo nome do barco:', v.name);
+    if(!name) return;
+    v.name = name; save(); render();
+  }
+
+  // ---------- PLANOS ----------
+  function openPlans(){ document.getElementById('plansOverlay').classList.add('open'); renderPlans(); }
+  function closePlans(){ document.getElementById('plansOverlay').classList.remove('open'); }
+  function choosePlan(key){
+    db.plan = key; save(); render(); renderPlans();
+  }
+  function renderPlans(){
+    const el = document.getElementById('plansList');
+    el.innerHTML = '';
+    Object.entries(PLANS).forEach(([key, p]) => {
+      const isCurrent = db.plan === key;
+      const div = document.createElement('div');
+      div.className = 'plan-card' + (isCurrent ? ' current' : '');
+      div.innerHTML = `
+        ${isCurrent ? '<div class="pc-tag">SEU PLANO</div>' : ''}
+        <h3>${p.name}</h3>
+        <div class="pc-limit">Até ${p.limitLabel || (p.limit + ' barcos')}</div>
+        <div class="pc-price">${fmt(p.price)}<span>/mês</span></div>
+        <button class="btn ${isCurrent ? 'btn-outline' : 'btn-primary'}" onclick="choosePlan('${key}')" ${isCurrent ? 'disabled' : ''}>${isCurrent ? 'Plano atual' : 'Escolher este plano'}</button>
+      `;
+      el.appendChild(div);
     });
-    db.currentTrip = null;
-    save(); render();
-    showTab('inicio');
   }
 
+  // ---------- VIAGENS ----------
+  function startTrip(vesselId){
+    const v = getVessel(vesselId); if(!v) return;
+    if(v.currentTrip){ alert('Já existe uma viagem em andamento neste barco.'); return; }
+    v.currentTrip = { startDate: new Date().toISOString(), despesas: [], producao: [] };
+    save(); render();
+  }
+  function endTrip(vesselId){
+    const v = getVessel(vesselId); if(!v || !v.currentTrip) return;
+    if(!confirm('Finalizar esta viagem e salvar no histórico?')) return;
+    const t = v.currentTrip;
+    const totals = computeTotals(t);
+    v.history.unshift({ startDate: t.startDate, endDate: new Date().toISOString(), dias: daysBetween(t.startDate), ...totals });
+    v.currentTrip = null;
+    save(); render();
+  }
   function computeTotals(t){
     const despesas = (t.despesas||[]).reduce((s,x)=>s+x.valor,0);
     const producaoKg = (t.producao||[]).reduce((s,x)=>s+x.peso,0);
@@ -330,138 +390,54 @@
     return { despesas, producaoKg, faturamento, lucro: faturamento - despesas };
   }
 
-  function saveVesselName(){
-    db.vesselName = document.getElementById('vesselNameInput').value;
-    save();
-    document.getElementById('vesselNameDisplay').textContent = db.vesselName || 'Minha Embarcação';
-  }
-
   function addDespesa(){
-    if(!db.currentTrip){ alert('Inicie uma viagem primeiro (aba Início).'); return; }
+    const v = isSpecificVessel() ? getVessel(db.selectedVesselId) : null;
+    if(!v){ alert('Selecione um barco específico.'); return; }
+    if(!v.currentTrip){ alert('Inicie uma viagem neste barco primeiro (aba Início).'); return; }
     const categoria = document.getElementById('despCategoria').value;
     const valor = parseFloat(document.getElementById('despValor').value);
     const desc = document.getElementById('despDesc').value;
     if(!valor || valor <= 0){ alert('Informe um valor válido.'); return; }
-    db.currentTrip.despesas.push({categoria, valor, desc, id: Date.now()});
-    document.getElementById('despValor').value = '';
-    document.getElementById('despDesc').value = '';
+    v.currentTrip.despesas.push({categoria, valor, desc, id: Date.now()});
+    document.getElementById('despValor').value=''; document.getElementById('despDesc').value='';
     save(); render();
   }
-
   function removeDespesa(id){
-    db.currentTrip.despesas = db.currentTrip.despesas.filter(d => d.id !== id);
+    const v = getVessel(db.selectedVesselId); if(!v) return;
+    v.currentTrip.despesas = v.currentTrip.despesas.filter(d => d.id !== id);
     save(); render();
   }
-
   function addProducao(){
-    if(!db.currentTrip){ alert('Inicie uma viagem primeiro (aba Início).'); return; }
+    const v = isSpecificVessel() ? getVessel(db.selectedVesselId) : null;
+    if(!v){ alert('Selecione um barco específico.'); return; }
+    if(!v.currentTrip){ alert('Inicie uma viagem neste barco primeiro (aba Início).'); return; }
     const especie = document.getElementById('prodEspecie').value.trim();
     const peso = parseFloat(document.getElementById('prodPeso').value);
     const preco = parseFloat(document.getElementById('prodPreco').value);
     const comprador = document.getElementById('prodComprador').value;
     if(!especie || !peso || !preco){ alert('Preencha espécie, peso e preço.'); return; }
-    db.currentTrip.producao.push({especie, peso, preco, comprador, id: Date.now()});
-    document.getElementById('prodEspecie').value = '';
-    document.getElementById('prodPeso').value = '';
-    document.getElementById('prodPreco').value = '';
-    document.getElementById('prodComprador').value = '';
+    v.currentTrip.producao.push({especie, peso, preco, comprador, id: Date.now()});
+    document.getElementById('prodEspecie').value=''; document.getElementById('prodPeso').value=''; document.getElementById('prodPreco').value=''; document.getElementById('prodComprador').value='';
     save(); render();
   }
-
   function removeProducao(id){
-    db.currentTrip.producao = db.currentTrip.producao.filter(p => p.id !== id);
+    const v = getVessel(db.selectedVesselId); if(!v) return;
+    v.currentTrip.producao = v.currentTrip.producao.filter(p => p.id !== id);
     save(); render();
-  }
-
-  function render(){
-    document.getElementById('vesselNameInput').value = db.vesselName || '';
-    document.getElementById('vesselNameDisplay').textContent = db.vesselName || 'Minha Embarcação';
-
-    const hasTrip = !!db.currentTrip;
-    document.getElementById('statusDot').classList.toggle('off', !hasTrip);
-    document.getElementById('statusText').textContent = hasTrip ? 'No mar' : 'No porto';
-    document.getElementById('btnStartTrip').style.display = hasTrip ? 'none' : 'flex';
-    document.getElementById('endTripRow').style.display = hasTrip ? 'flex' : 'none';
-
-    let totals = {despesas:0, producaoKg:0, faturamento:0, lucro:0};
-    if(hasTrip){
-      totals = computeTotals(db.currentTrip);
-      const dias = daysBetween(db.currentTrip.startDate);
-      document.getElementById('vesselSub').textContent = `No mar há ${dias} dia(s)`;
-    } else {
-      document.getElementById('vesselSub').textContent = 'Nenhuma viagem em andamento';
-    }
-
-    document.getElementById('kpiFat').textContent = fmt(totals.faturamento);
-    document.getElementById('kpiDesp').textContent = fmt(totals.despesas);
-    document.getElementById('kpiResult').textContent = fmt(totals.lucro);
-    document.getElementById('kpiResult').className = 'value ' + (totals.lucro >= 0 ? 'pos' : 'neg');
-    document.getElementById('kpiProd').textContent = (totals.producaoKg||0).toLocaleString('pt-BR') + ' kg';
-
-    // despesas list
-    const dl = document.getElementById('despesasList');
-    const desps = hasTrip ? db.currentTrip.despesas : [];
-    document.getElementById('totalDespesasLabel').textContent = desps.length ? ('· ' + fmt(totals.despesas)) : '';
-    dl.innerHTML = desps.length ? '' : '<div class="empty">Nenhuma despesa lançada nesta viagem.</div>';
-    desps.slice().reverse().forEach(d => {
-      const el = document.createElement('div');
-      el.className = 'row-item';
-      el.innerHTML = `<div><div class="ri-main">${d.categoria}</div><div class="ri-sub">${d.desc||''}</div></div>
-        <div style="display:flex;align-items:center;"><div class="ri-val">${fmt(d.valor)}</div><button class="ri-del" onclick="removeDespesa(${d.id})">✕</button></div>`;
-      dl.appendChild(el);
-    });
-
-    // producao list
-    const pl = document.getElementById('producaoList');
-    const prods = hasTrip ? db.currentTrip.producao : [];
-    document.getElementById('totalProducaoLabel').textContent = prods.length ? ('· ' + (totals.producaoKg||0).toLocaleString('pt-BR') + ' kg') : '';
-    pl.innerHTML = prods.length ? '' : '<div class="empty">Nenhuma produção lançada nesta viagem.</div>';
-    prods.slice().reverse().forEach(p => {
-      const el = document.createElement('div');
-      el.className = 'row-item';
-      el.innerHTML = `<div><div class="ri-main">${p.especie} — ${p.peso}kg</div><div class="ri-sub">${p.comprador||'Sem comprador'} · R$${p.preco}/kg</div></div>
-        <div style="display:flex;align-items:center;"><div class="ri-val">${fmt(p.peso*p.preco)}</div><button class="ri-del" onclick="removeProducao(${p.id})">✕</button></div>`;
-      pl.appendChild(el);
-    });
-
-    // resultado
-    document.getElementById('noTripMsg').style.display = hasTrip ? 'none' : 'block';
-    document.querySelector('.result-table').style.display = hasTrip ? 'table' : 'none';
-    if(hasTrip){
-      const dias = daysBetween(db.currentTrip.startDate);
-      document.getElementById('resDias').textContent = dias;
-      document.getElementById('resProducao').textContent = (totals.producaoKg||0).toLocaleString('pt-BR') + ' kg';
-      document.getElementById('resFat').textContent = fmt(totals.faturamento);
-      document.getElementById('resDesp').textContent = fmt(totals.despesas);
-      document.getElementById('resLucro').textContent = fmt(totals.lucro);
-      document.getElementById('resCustoDia').textContent = fmt(totals.despesas/dias);
-      document.getElementById('resFatDia').textContent = fmt(totals.faturamento/dias);
-      document.getElementById('resLucroDia').textContent = fmt(totals.lucro/dias);
-    }
-
-    // stat do ano atual
-    const curYear = new Date().getFullYear();
-    document.getElementById('statYearLabel').textContent = curYear;
-    document.getElementById('statYearCount').textContent = db.history.filter(h => new Date(h.startDate).getFullYear() === curYear).length;
-
-    // history com filtros
-    populateYearFilters();
-    const filtered = getFilteredHistory();
-    const hl = document.getElementById('historyList');
-    hl.innerHTML = filtered.length ? '' : '<div class="empty">Nenhuma viagem encontrada para esse filtro.</div>';
-    filtered.forEach((h, i) => {
-      const el = document.createElement('div');
-      el.className = 'history-item';
-      const date = new Date(h.startDate).toLocaleDateString('pt-BR');
-      el.innerHTML = `<div class="h-top"><span>Viagem de ${date} · ${h.dias} dias</span><span style="color:${h.lucro>=0?'#3FC1B0':'#E0654F'}">${fmt(h.lucro)}</span></div>
-        <div class="h-sub">Produção: ${h.producaoKg.toLocaleString('pt-BR')} kg · Faturamento: ${fmt(h.faturamento)} · Despesas: ${fmt(h.despesas)}</div>`;
-      hl.appendChild(el);
-    });
   }
 
   // ---------- FILTROS DE HISTÓRICO ----------
+  function allHistoryEntries(){
+    // retorna itens do histórico com nome do barco anexado, dos barcos selecionados
+    const vessels = selectedVessels();
+    let entries = [];
+    vessels.forEach(v => { (v.history||[]).forEach(h => entries.push({...h, vesselName: v.name})); });
+    entries.sort((a,b) => new Date(b.startDate) - new Date(a.startDate));
+    return entries;
+  }
   function populateYearFilters(){
-    const years = Array.from(new Set(db.history.map(h => new Date(h.startDate).getFullYear())));
+    const entries = allHistoryEntries();
+    const years = Array.from(new Set(entries.map(h => new Date(h.startDate).getFullYear())));
     years.sort((a,b)=>b-a);
     const currentYear = new Date().getFullYear();
     if(!years.includes(currentYear)) years.unshift(currentYear);
@@ -470,15 +446,13 @@
     sel.innerHTML = '<option value="">Ano (todos)</option>' + years.map(y => `<option value="${y}">${y}</option>`).join('');
     sel.value = prevVal || String(currentYear);
   }
-
   function onFilterChange(){ render(); }
-
   function getFilteredHistory(){
     const year = document.getElementById('filterYear').value;
     const month = document.getElementById('filterMonth').value;
     const from = document.getElementById('filterFrom').value;
     const to = document.getElementById('filterTo').value;
-    return db.history.filter(h => {
+    return allHistoryEntries().filter(h => {
       const d = new Date(h.startDate);
       if(year && d.getFullYear() !== parseInt(year)) return false;
       if(month !== '' && d.getMonth() !== parseInt(month)) return false;
@@ -489,19 +463,13 @@
   }
 
   // ---------- COMANDO DE VOZ ----------
-  let recognition = null;
-  let voicePending = null; // {type, ...dados}
+  let recognition = null, voicePending = null;
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-
   function toggleListening(){
-    if(!SpeechRec){
-      alert('Reconhecimento de voz não é suportado neste navegador. Use o Google Chrome no Android.');
-      return;
-    }
-    openVoice();
-    startListening();
+    if(!SpeechRec){ alert('Reconhecimento de voz não suportado neste navegador. Use o Chrome no Android.'); return; }
+    if(!isSpecificVessel()){ alert('Selecione um barco específico antes de usar o comando de voz.'); return; }
+    openVoice(); startListening();
   }
-
   function openVoice(){
     document.getElementById('voiceOverlay').classList.add('open');
     document.getElementById('voiceTranscript').textContent = '—';
@@ -515,12 +483,9 @@
     document.getElementById('micFab').classList.remove('listening');
     voicePending = null;
   }
-
   function startListening(){
     recognition = new SpeechRec();
-    recognition.lang = 'pt-BR';
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.lang = 'pt-BR'; recognition.continuous = false; recognition.interimResults = false;
     document.getElementById('micFab').classList.add('listening');
     recognition.onresult = (e) => {
       const text = e.results[0][0].transcript;
@@ -528,38 +493,23 @@
       document.getElementById('voiceStatus').textContent = 'Entendi o seguinte — confira antes de lançar:';
       handleVoiceText(text);
     };
-    recognition.onerror = () => {
-      document.getElementById('voiceStatus').textContent = 'Não consegui ouvir direito. Tente novamente.';
-      document.getElementById('micFab').classList.remove('listening');
-    };
+    recognition.onerror = () => { document.getElementById('voiceStatus').textContent = 'Não consegui ouvir direito. Tente novamente.'; document.getElementById('micFab').classList.remove('listening'); };
     recognition.onend = () => { document.getElementById('micFab').classList.remove('listening'); };
     recognition.start();
   }
-
-  function toNum(str){
-    return parseFloat(str.replace(/\./g,'').replace(',', '.'));
-  }
-
+  function toNum(str){ return parseFloat(str.replace(/\./g,'').replace(',', '.')); }
   function handleVoiceText(text){
     const t = text.toLowerCase();
     const box = document.getElementById('voiceParsedBox');
     const confirmBtn = document.getElementById('voiceConfirmBtn');
-
     const catMap = {
-      'Combustível': ['combustível','combustivel','diesel','gasolina'],
-      'Óleo': ['óleo','oleo','lubrificante'],
-      'Gelo': ['gelo'],
-      'Isca': ['isca'],
-      'Rancho': ['rancho','mantimento','comida','alimentação','alimentacao'],
-      'Água': ['água','agua'],
-      'Manutenção': ['manutenção','manutencao','conserto','reparo'],
+      'Combustível': ['combustível','combustivel','diesel','gasolina'], 'Óleo': ['óleo','oleo','lubrificante'],
+      'Gelo': ['gelo'], 'Isca': ['isca'], 'Rancho': ['rancho','mantimento','comida','alimentação','alimentacao'],
+      'Água': ['água','agua'], 'Manutenção': ['manutenção','manutencao','conserto','reparo'],
       'Pescadores': ['pescador','pescadores','tripulação','tripulacao','diária','diaria'],
-      'Porto': ['porto','atracação','atracacao'],
-      'Transporte': ['transporte','frete'],
+      'Porto': ['porto','atracação','atracacao'], 'Transporte': ['transporte','frete'],
     };
-
     const isProducao = /\bvend|pesqu|produç|producao|kg de|quilos? de\b/.test(t) && /\bkg|quilos?\b/.test(t);
-
     if(isProducao){
       const pesoMatch = t.match(/(\d+[.,]?\d*)\s*(kg|quilos?)/);
       const precoMatch = t.match(/(\d+[.,]?\d*)\s*reais?\s*(o|por|cada)?\s*(kg|quilo)/) || t.match(/a\s*(\d+[.,]?\d*)\s*reais?/);
@@ -567,60 +517,173 @@
       const peso = pesoMatch ? toNum(pesoMatch[1]) : null;
       const preco = precoMatch ? toNum(precoMatch[1]) : null;
       const especie = especieMatch && especieMatch[1] ? especieMatch[1].charAt(0).toUpperCase()+especieMatch[1].slice(1) : 'Peixe';
-
       if(peso){
         voicePending = { type:'producao', especie, peso, preco: preco||0 };
-        box.innerHTML = `<div class="voice-parsed"><div class="vp-title">Produção detectada</div>
-          <div class="vp-main">${especie} — ${peso} kg</div>
-          <div class="vp-sub">${preco ? ('R$ '+preco+'/kg · Total R$ '+(peso*preco).toFixed(2)) : 'Preço não identificado — edite depois na aba Produção'}</div></div>`;
-        confirmBtn.style.display = 'flex';
-        return;
+        box.innerHTML = `<div class="voice-parsed"><div class="vp-title">Produção detectada</div><div class="vp-main">${especie} — ${peso} kg</div><div class="vp-sub">${preco ? ('R$ '+preco+'/kg · Total R$ '+(peso*preco).toFixed(2)) : 'Preço não identificado — edite depois na aba Produção'}</div></div>`;
+        confirmBtn.style.display = 'flex'; return;
       }
     }
-
-    // despesa
     let categoria = 'Outros';
-    for(const [cat, keys] of Object.entries(catMap)){
-      if(keys.some(k => t.includes(k))){ categoria = cat; break; }
-    }
+    for(const [cat, keys] of Object.entries(catMap)){ if(keys.some(k => t.includes(k))){ categoria = cat; break; } }
     const valorMatch = t.match(/(\d+[.,]?\d*)\s*reais?/) || t.match(/r\$\s*(\d+[.,]?\d*)/);
     const valor = valorMatch ? toNum(valorMatch[1]) : null;
-
     if(valor){
       voicePending = { type:'despesa', categoria, valor, desc: text };
-      box.innerHTML = `<div class="voice-parsed"><div class="vp-title">Despesa detectada</div>
-        <div class="vp-main">${categoria} — R$ ${valor.toFixed(2)}</div>
-        <div class="vp-sub">"${text}"</div></div>`;
+      box.innerHTML = `<div class="voice-parsed"><div class="vp-title">Despesa detectada</div><div class="vp-main">${categoria} — R$ ${valor.toFixed(2)}</div><div class="vp-sub">"${text}"</div></div>`;
       confirmBtn.style.display = 'flex';
     } else {
-      box.innerHTML = `<div class="voice-parsed"><div class="vp-title">Não identifiquei um valor</div>
-        <div class="vp-main">Tente falar novamente</div>
-        <div class="vp-sub">Ex: "gastei 150 reais com gelo" ou "vendi 30 kg de dourado a 18 reais o kg"</div></div>`;
+      box.innerHTML = `<div class="voice-parsed"><div class="vp-title">Não identifiquei um valor</div><div class="vp-main">Tente falar novamente</div><div class="vp-sub">Ex: "gastei 150 reais com gelo" ou "vendi 30 kg de dourado a 18 reais o kg"</div></div>`;
     }
   }
-
   function confirmVoiceAction(){
     if(!voicePending) return;
-    if(!db.currentTrip){
-      alert('Inicie uma viagem primeiro (aba Início) para lançar despesas ou produção.');
-      closeVoice();
-      return;
+    const v = getVessel(db.selectedVesselId);
+    if(!v || !v.currentTrip){ alert('Inicie uma viagem neste barco primeiro.'); closeVoice(); return; }
+    if(voicePending.type === 'despesa'){ v.currentTrip.despesas.push({categoria: voicePending.categoria, valor: voicePending.valor, desc: voicePending.desc, id: Date.now()}); }
+    else if(voicePending.type === 'producao'){ v.currentTrip.producao.push({especie: voicePending.especie, peso: voicePending.peso, preco: voicePending.preco, comprador:'', id: Date.now()}); }
+    save(); render(); closeVoice();
+  }
+
+  // ---------- RENDER ----------
+  function render(){
+    document.getElementById('planBadge').textContent = '⭐ ' + PLANS[db.plan].name;
+
+    // chips de barcos
+    const chipsEl = document.getElementById('vesselChips');
+    chipsEl.innerHTML = '';
+    const allChip = document.createElement('button');
+    allChip.className = 'chip' + (db.selectedVesselId === 'all' ? ' active' : '');
+    allChip.textContent = 'Todos os barcos';
+    allChip.onclick = () => selectVessel('all');
+    chipsEl.appendChild(allChip);
+    db.vessels.forEach(v => {
+      const c = document.createElement('button');
+      c.className = 'chip' + (db.selectedVesselId === v.id ? ' active' : '');
+      c.textContent = v.name;
+      c.onclick = () => selectVessel(v.id);
+      c.ondblclick = () => renameVessel(v.id);
+      chipsEl.appendChild(c);
+    });
+    const addChip = document.createElement('button');
+    addChip.className = 'chip add';
+    addChip.textContent = '+ Novo barco';
+    addChip.onclick = addVesselPrompt;
+    chipsEl.appendChild(addChip);
+
+    // painel início
+    const specific = isSpecificVessel();
+    const vessels = selectedVessels();
+    let totals = {despesas:0, producaoKg:0, faturamento:0, lucro:0};
+    vessels.forEach(v => { if(v.currentTrip) { const t = computeTotals(v.currentTrip); Object.keys(totals).forEach(k => totals[k]+=t[k]); } });
+
+    document.getElementById('vesselNameDisplay').textContent = specific ? getVessel(db.selectedVesselId).name : 'Todos os barcos';
+    const activeTrips = vessels.filter(v => v.currentTrip);
+    document.getElementById('vesselSub').textContent = specific
+      ? (activeTrips.length ? `No mar há ${daysBetween(activeTrips[0].currentTrip.startDate)} dia(s)` : 'Nenhuma viagem em andamento')
+      : `${activeTrips.length} de ${vessels.length} barco(s) no mar agora`;
+
+    document.getElementById('kpiFat').textContent = fmt(totals.faturamento);
+    document.getElementById('kpiDesp').textContent = fmt(totals.despesas);
+    document.getElementById('kpiResult').textContent = fmt(totals.lucro);
+    document.getElementById('kpiResult').className = 'value ' + (totals.lucro >= 0 ? 'pos' : 'neg');
+    document.getElementById('kpiProd').textContent = (totals.producaoKg||0).toLocaleString('pt-BR') + ' kg';
+
+    // ações de viagem (só quando barco específico selecionado)
+    const actionRow = document.getElementById('tripActionRow');
+    actionRow.innerHTML = '';
+    if(specific){
+      const v = getVessel(db.selectedVesselId);
+      if(v.currentTrip){
+        actionRow.innerHTML = `<button class="btn btn-danger" onclick="endTrip('${v.id}')">🏁 Finalizar viagem</button>`;
+      } else {
+        actionRow.innerHTML = `<button class="btn btn-primary" onclick="startTrip('${v.id}')">🚤 Iniciar viagem</button>`;
+      }
+    } else if(db.vessels.length === 0){
+      actionRow.innerHTML = `<button class="btn btn-primary" onclick="addVesselPrompt()">+ Cadastrar primeiro barco</button>`;
+    } else {
+      actionRow.innerHTML = `<div class="empty" style="padding:6px 0;">Selecione um barco acima para iniciar/finalizar viagem.</div>`;
     }
-    if(voicePending.type === 'despesa'){
-      db.currentTrip.despesas.push({categoria: voicePending.categoria, valor: voicePending.valor, desc: voicePending.desc, id: Date.now()});
-    } else if(voicePending.type === 'producao'){
-      db.currentTrip.producao.push({especie: voicePending.especie, peso: voicePending.peso, preco: voicePending.preco, comprador:'', id: Date.now()});
+
+    // stat do ano
+    const curYear = new Date().getFullYear();
+    document.getElementById('statYearLabel').textContent = curYear;
+    document.getElementById('statYearCount').textContent = allHistoryEntries().filter(h => new Date(h.startDate).getFullYear() === curYear).length;
+
+    populateYearFilters();
+    const filtered = getFilteredHistory();
+    const hl = document.getElementById('historyList');
+    hl.innerHTML = filtered.length ? '' : '<div class="empty">Nenhuma viagem encontrada para esse filtro.</div>';
+    filtered.forEach(h => {
+      const el = document.createElement('div');
+      el.className = 'history-item';
+      const date = new Date(h.startDate).toLocaleDateString('pt-BR');
+      el.innerHTML = `${db.selectedVesselId==='all' ? `<div class="h-vessel">${h.vesselName}</div>` : ''}
+        <div class="h-top"><span>Viagem de ${date} · ${h.dias} dias</span><span style="color:${h.lucro>=0?'#3FC1B0':'#E0654F'}">${fmt(h.lucro)}</span></div>
+        <div class="h-sub">Produção: ${h.producaoKg.toLocaleString('pt-BR')} kg · Faturamento: ${fmt(h.faturamento)} · Despesas: ${fmt(h.despesas)}</div>`;
+      hl.appendChild(el);
+    });
+
+    // despesas tab
+    const despNoVessel = document.getElementById('despesasNoVessel');
+    const despContent = document.getElementById('despesasContent');
+    despNoVessel.style.display = specific ? 'none' : 'block';
+    despContent.style.display = specific ? 'block' : 'none';
+    if(specific){
+      const v = getVessel(db.selectedVesselId);
+      const desps = v.currentTrip ? v.currentTrip.despesas : [];
+      const dTotals = v.currentTrip ? computeTotals(v.currentTrip) : {despesas:0};
+      document.getElementById('totalDespesasLabel').textContent = desps.length ? ('· ' + fmt(dTotals.despesas)) : '';
+      const dl = document.getElementById('despesasList');
+      dl.innerHTML = desps.length ? '' : '<div class="empty">Nenhuma despesa lançada nesta viagem.</div>';
+      desps.slice().reverse().forEach(d => {
+        const el = document.createElement('div'); el.className = 'row-item';
+        el.innerHTML = `<div><div class="ri-main">${d.categoria}</div><div class="ri-sub">${d.desc||''}</div></div>
+          <div style="display:flex;align-items:center;"><div class="ri-val">${fmt(d.valor)}</div><button class="ri-del" onclick="removeDespesa(${d.id})">✕</button></div>`;
+        dl.appendChild(el);
+      });
     }
-    save(); render();
-    closeVoice();
+
+    // produção tab
+    const prodNoVessel = document.getElementById('producaoNoVessel');
+    const prodContent = document.getElementById('producaoContent');
+    prodNoVessel.style.display = specific ? 'none' : 'block';
+    prodContent.style.display = specific ? 'block' : 'none';
+    if(specific){
+      const v = getVessel(db.selectedVesselId);
+      const prods = v.currentTrip ? v.currentTrip.producao : [];
+      const pTotals = v.currentTrip ? computeTotals(v.currentTrip) : {producaoKg:0};
+      document.getElementById('totalProducaoLabel').textContent = prods.length ? ('· ' + (pTotals.producaoKg||0).toLocaleString('pt-BR') + ' kg') : '';
+      const pl = document.getElementById('producaoList');
+      pl.innerHTML = prods.length ? '' : '<div class="empty">Nenhuma produção lançada nesta viagem.</div>';
+      prods.slice().reverse().forEach(p => {
+        const el = document.createElement('div'); el.className = 'row-item';
+        el.innerHTML = `<div><div class="ri-main">${p.especie} — ${p.peso}kg</div><div class="ri-sub">${p.comprador||'Sem comprador'} · R$${p.preco}/kg</div></div>
+          <div style="display:flex;align-items:center;"><div class="ri-val">${fmt(p.peso*p.preco)}</div><button class="ri-del" onclick="removeProducao(${p.id})">✕</button></div>`;
+        pl.appendChild(el);
+      });
+    }
+
+    // resultado tab
+    const hasActive = activeTrips.length > 0;
+    document.getElementById('noTripMsg').style.display = hasActive ? 'none' : 'block';
+    document.querySelector('.result-table').style.display = hasActive ? 'table' : 'none';
+    if(hasActive){
+      const dias = specific ? daysBetween(activeTrips[0].currentTrip.startDate) : Math.max(...activeTrips.map(v => daysBetween(v.currentTrip.startDate)));
+      document.getElementById('resDias').textContent = dias;
+      document.getElementById('resProducao').textContent = (totals.producaoKg||0).toLocaleString('pt-BR') + ' kg';
+      document.getElementById('resFat').textContent = fmt(totals.faturamento);
+      document.getElementById('resDesp').textContent = fmt(totals.despesas);
+      document.getElementById('resLucro').textContent = fmt(totals.lucro);
+      document.getElementById('resCustoDia').textContent = fmt(totals.despesas/dias);
+      document.getElementById('resFatDia').textContent = fmt(totals.faturamento/dias);
+      document.getElementById('resLucroDia').textContent = fmt(totals.lucro/dias);
+    }
   }
 
   render();
 
   if('serviceWorker' in navigator){
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(()=>{});
-    });
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(()=>{}); });
   }
 </script>
 </body>

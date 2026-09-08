@@ -1,4 +1,4 @@
-const CACHE_NAME = 'pescagestor-v2';
+const CACHE_NAME = 'pescagestor-v3';
 const FILES = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', (e) => {
