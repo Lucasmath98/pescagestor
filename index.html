@@ -93,6 +93,30 @@
   .year-stat{ display:flex; justify-content:space-between; align-items:center; background:var(--surface); border-radius:12px; padding:12px 14px; margin-bottom:14px; font-size:13px; }
   .year-stat b{ font-family:'Fraunces',serif; font-size:17px; color:var(--teal); }
 
+  .weather-card{ background:var(--surface); border-radius:16px; padding:16px; margin-bottom:16px; }
+  .weather-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .weather-loc{ font-size:12.5px; color:var(--text-soft); display:flex; align-items:center; gap:6px; }
+  .weather-loc button{ background:none; border:none; color:var(--teal); font-size:11.5px; text-decoration:underline; padding:0; }
+  .period-toggle{ display:flex; gap:6px; margin-bottom:12px; }
+  .period-toggle button{ flex:1; background:var(--card); border:1px solid var(--track); border-radius:8px; padding:7px; font-size:11.5px; color:var(--text-soft); font-weight:600; }
+  .period-toggle button.active{ background:var(--teal); color:#06201C; border-color:var(--teal); }
+  .weather-days{ display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; }
+  .weather-days::-webkit-scrollbar{ display:none; }
+  .wday{ flex:0 0 auto; width:78px; background:var(--card); border:1px solid var(--track); border-radius:12px; padding:10px 8px; text-align:center; }
+  .wday .wd-date{ font-size:10.5px; color:var(--text-dim); margin-bottom:4px; }
+  .wday .wd-temp{ font-size:14px; font-weight:700; margin-bottom:4px; }
+  .wday .wd-temp .lo{ color:var(--text-dim); font-weight:500; }
+  .wday .wd-detail{ font-size:9.5px; color:var(--text-soft); line-height:1.5; }
+  .wday .wd-fish{ margin-top:6px; font-size:9px; font-weight:700; padding:2px 6px; border-radius:6px; display:inline-block; }
+  .fish-good{ background:rgba(63,193,176,0.2); color:var(--teal); }
+  .fish-ok{ background:rgba(232,184,75,0.2); color:var(--gold); }
+  .fish-bad{ background:rgba(224,101,79,0.2); color:var(--red); }
+  .weather-loc-search{ display:flex; gap:8px; margin-top:10px; }
+  .weather-loc-search input{ flex:1; background:var(--card); border:1px solid var(--track); border-radius:8px; padding:8px 10px; color:var(--text); font-size:12.5px; }
+  .weather-loc-results{ margin-top:8px; }
+  .weather-loc-results div{ padding:8px 10px; background:var(--card); border-radius:8px; margin-bottom:6px; font-size:12.5px; }
+  .weather-disclaimer{ font-size:10px; color:var(--text-dim); margin-top:10px; line-height:1.5; }
+
   .mic-fab{ position:fixed; left:50%; transform:translateX(calc(-50% + 155px)); bottom:96px; width:52px; height:52px; border-radius:50%; background:var(--teal); border:none; box-shadow:0 8px 20px rgba(63,193,176,0.4); display:flex; align-items:center; justify-content:center; z-index:45; }
   .mic-fab.listening{ animation:pulseMic 1.2s ease-in-out infinite; background:var(--red); }
   @keyframes pulseMic{ 0%{box-shadow:0 0 0 0 rgba(224,101,79,0.55);} 70%{box-shadow:0 0 0 16px rgba(224,101,79,0);} 100%{box-shadow:0 0 0 0 rgba(224,101,79,0);} }
@@ -145,6 +169,25 @@
     </div>
 
     <div id="vesselNameEditBox"></div>
+
+    <div class="weather-card">
+      <div class="weather-head">
+        <h3 style="font-size:14.5px;">🌤️ Previsão do tempo</h3>
+        <div class="weather-loc" id="weatherLocLabel">📍 —</div>
+      </div>
+      <div class="period-toggle">
+        <button class="active" data-period="today" onclick="setWeatherPeriod('today')">Hoje</button>
+        <button data-period="week" onclick="setWeatherPeriod('week')">7 dias</button>
+        <button data-period="month" onclick="setWeatherPeriod('month')">16 dias</button>
+      </div>
+      <div class="weather-days" id="weatherDays"><div class="empty" style="padding:14px;">Carregando previsão...</div></div>
+      <div class="weather-loc-search">
+        <input type="text" id="locSearchInput" placeholder="Buscar porto ou cidade...">
+        <button class="btn btn-outline" style="width:auto; padding:8px 14px;" onclick="searchLocation()">Buscar</button>
+      </div>
+      <div class="weather-loc-results" id="locResults"></div>
+      <div class="weather-disclaimer">⚠️ Previsão estimada (Open-Meteo). Para decisões de navegação, consulte sempre a Marinha do Brasil / Capitania dos Portos.</div>
+    </div>
 
     <div class="section-title">Histórico de viagens</div>
     <div class="year-stat">
@@ -256,7 +299,7 @@
 <div class="voice-overlay" id="voiceOverlay" onclick="if(event.target===this) closeVoice()">
   <div class="voice-sheet">
     <div class="sheet-handle"></div>
-    <div class="voice-status" id="voiceStatus">🎤 Ouvindo... fale, por exemplo: "gastei 200 reais com combustível" ou "vendi 50 quilos de atum a 20 reais o quilo"</div>
+    <div class="voice-status" id="voiceStatus">🎤 Ouvindo... fale um lançamento ("gastei 200 reais com combustível"), uma venda ("vendi 50 kg de atum a 20 reais o kg") ou busque uma viagem ("mostra a viagem que saiu dia 5 de agosto e voltou dia 20")</div>
     <div class="voice-transcript" id="voiceTranscript">—</div>
     <div id="voiceParsedBox"></div>
     <div class="btn-row">
@@ -467,7 +510,6 @@
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   function toggleListening(){
     if(!SpeechRec){ alert('Reconhecimento de voz não suportado neste navegador. Use o Chrome no Android.'); return; }
-    if(!isSpecificVessel()){ alert('Selecione um barco específico antes de usar o comando de voz.'); return; }
     openVoice(); startListening();
   }
   function openVoice(){
@@ -475,7 +517,7 @@
     document.getElementById('voiceTranscript').textContent = '—';
     document.getElementById('voiceParsedBox').innerHTML = '';
     document.getElementById('voiceConfirmBtn').style.display = 'none';
-    document.getElementById('voiceStatus').textContent = '🎤 Ouvindo... fale, por exemplo: "gastei 200 reais com combustível" ou "vendi 50 quilos de atum a 20 reais o quilo"';
+    document.getElementById('voiceStatus').textContent = '🎤 Ouvindo... fale um lançamento ("gastei 200 reais com combustível"), uma venda ("vendi 50 kg de atum a 20 reais o kg") ou busque uma viagem ("mostra a viagem que saiu dia 5 de agosto e voltou dia 20")';
   }
   function closeVoice(){
     document.getElementById('voiceOverlay').classList.remove('open');
@@ -498,7 +540,49 @@
     recognition.start();
   }
   function toNum(str){ return parseFloat(str.replace(/\./g,'').replace(',', '.')); }
+
+  const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  function parseDatesBR(t){
+    const clean = t.replace('marco','março');
+    const re = /(\d{1,2})\s*(?:de)?\s*(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)(?:\s*(?:de)?\s*(\d{4}))?/g;
+    const found = [];
+    let m;
+    while((m = re.exec(clean)) !== null){
+      const day = parseInt(m[1]);
+      const month = MESES.indexOf(m[2]);
+      const year = m[3] ? parseInt(m[3]) : new Date().getFullYear();
+      found.push(new Date(year, month, day));
+    }
+    return found;
+  }
+
+  function tryDateSearch(text){
+    const t = text.toLowerCase();
+    const dates = parseDatesBR(t);
+    const hasSearchIntent = /viagem|saiu|voltou|mostra|buscar|busca|procura|procurar|hist[oó]rico|quando/.test(t);
+    if(dates.length === 0) return false;
+    if(!hasSearchIntent && dates.length < 2) return false;
+    dates.sort((a,b) => a-b);
+    const from = dates[0];
+    const to = dates.length > 1 ? dates[dates.length-1] : dates[0];
+    const toISO = (d) => d.toISOString().slice(0,10);
+    document.getElementById('filterYear').value = '';
+    document.getElementById('filterMonth').value = '';
+    document.getElementById('filterFrom').value = toISO(from);
+    document.getElementById('filterTo').value = toISO(to);
+    render();
+    const box = document.getElementById('voiceParsedBox');
+    box.innerHTML = `<div class="voice-parsed"><div class="vp-title">Busca por data</div>
+      <div class="vp-main">Viagens de ${from.toLocaleDateString('pt-BR')} até ${to.toLocaleDateString('pt-BR')}</div>
+      <div class="vp-sub">Mostrando resultado no Início → Histórico de viagens</div></div>`;
+    document.getElementById('voiceStatus').textContent = 'Filtro aplicado!';
+    document.getElementById('voiceConfirmBtn').style.display = 'none';
+    setTimeout(() => { closeVoice(); showTab('inicio'); }, 1800);
+    return true;
+  }
+
   function handleVoiceText(text){
+    if(tryDateSearch(text)) return;
     const t = text.toLowerCase();
     const box = document.getElementById('voiceParsedBox');
     const confirmBtn = document.getElementById('voiceConfirmBtn');
@@ -681,6 +765,117 @@
   }
 
   render();
+
+  // ---------- CLIMA ----------
+  let weatherPeriod = 'today';
+  let weatherData = null;
+
+  function initWeather(){
+    if(db.location){
+      updateLocLabel();
+      fetchWeather(db.location.lat, db.location.lon);
+    } else if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          db.location = { lat: pos.coords.latitude, lon: pos.coords.longitude, name: 'Minha localização' };
+          save(); updateLocLabel(); fetchWeather(db.location.lat, db.location.lon);
+        },
+        () => { document.getElementById('weatherLocLabel').innerHTML = '📍 Local não definido — <button onclick="document.getElementById(\'locSearchInput\').focus()" style="background:none;border:none;color:var(--teal);text-decoration:underline;">buscar cidade</button>'; }
+      );
+    } else {
+      document.getElementById('weatherDays').innerHTML = '<div class="empty" style="padding:14px;">Geolocalização não disponível. Busque uma cidade abaixo.</div>';
+    }
+  }
+
+  function updateLocLabel(){
+    document.getElementById('weatherLocLabel').textContent = '📍 ' + (db.location ? db.location.name : '—');
+  }
+
+  async function searchLocation(){
+    const q = document.getElementById('locSearchInput').value.trim();
+    if(!q) return;
+    const box = document.getElementById('locResults');
+    box.innerHTML = '<div>Buscando...</div>';
+    try{
+      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=pt`);
+      const data = await r.json();
+      if(!data.results || !data.results.length){ box.innerHTML = '<div>Nenhum resultado encontrado.</div>'; return; }
+      box.innerHTML = '';
+      data.results.forEach(res => {
+        const div = document.createElement('div');
+        div.style.cursor = 'pointer';
+        div.textContent = `${res.name}${res.admin1 ? ', '+res.admin1 : ''} — ${res.country}`;
+        div.onclick = () => {
+          db.location = { lat: res.latitude, lon: res.longitude, name: res.name };
+          save(); updateLocLabel(); fetchWeather(res.latitude, res.longitude);
+          box.innerHTML = ''; document.getElementById('locSearchInput').value = '';
+        };
+        box.appendChild(div);
+      });
+    } catch(e){ box.innerHTML = '<div>Erro ao buscar. Tente novamente.</div>'; }
+  }
+
+  async function fetchWeather(lat, lon){
+    const daysEl = document.getElementById('weatherDays');
+    daysEl.innerHTML = '<div class="empty" style="padding:14px;">Carregando previsão...</div>';
+    try{
+      const wUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,windspeed_10m_max,precipitation_probability_max&timezone=auto&forecast_days=16`;
+      const wRes = await fetch(wUrl);
+      const w = await wRes.json();
+      let waves = null;
+      try{
+        const mUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lon}&daily=wave_height_max&timezone=auto&forecast_days=16`;
+        const mRes = await fetch(mUrl);
+        const m = await mRes.json();
+        if(m.daily) waves = m.daily.wave_height_max;
+      }catch(e){ waves = null; }
+      weatherData = { dates: w.daily.time, tmax: w.daily.temperature_2m_max, tmin: w.daily.temperature_2m_min, wind: w.daily.windspeed_10m_max, rain: w.daily.precipitation_probability_max, waves };
+      renderWeather();
+    } catch(e){
+      daysEl.innerHTML = '<div class="empty" style="padding:14px;">Não foi possível carregar a previsão agora.</div>';
+    }
+  }
+
+  function fishCondition(wind, wave, rain){
+    let score = 100;
+    if(wind > 25) score -= 40; else if(wind > 15) score -= 15;
+    if(wave != null){ if(wave > 1.5) score -= 35; else if(wave > 0.8) score -= 12; }
+    if(rain > 70) score -= 20; else if(rain > 40) score -= 8;
+    if(score >= 70) return {label:'Boa', cls:'fish-good'};
+    if(score >= 40) return {label:'Regular', cls:'fish-ok'};
+    return {label:'Ruim', cls:'fish-bad'};
+  }
+
+  function setWeatherPeriod(p){
+    weatherPeriod = p;
+    document.querySelectorAll('.period-toggle button').forEach(b => b.classList.toggle('active', b.dataset.period === p));
+    renderWeather();
+  }
+
+  function renderWeather(){
+    if(!weatherData) return;
+    const el = document.getElementById('weatherDays');
+    el.innerHTML = '';
+    const count = weatherPeriod === 'today' ? 1 : (weatherPeriod === 'week' ? 7 : 16);
+    for(let i=0; i<count && i<weatherData.dates.length; i++){
+      const d = new Date(weatherData.dates[i]);
+      const wind = weatherData.wind[i];
+      const wave = weatherData.waves ? weatherData.waves[i] : null;
+      const rain = weatherData.rain[i];
+      const cond = fishCondition(wind, wave, rain);
+      const div = document.createElement('div');
+      div.className = 'wday';
+      div.innerHTML = `
+        <div class="wd-date">${d.toLocaleDateString('pt-BR', {weekday:'short', day:'2-digit'})}</div>
+        <div class="wd-temp">${Math.round(weatherData.tmax[i])}° <span class="lo">${Math.round(weatherData.tmin[i])}°</span></div>
+        <div class="wd-detail">💨 ${Math.round(wind)} km/h<br>🌧️ ${rain}%${wave!=null ? '<br>🌊 '+wave.toFixed(1)+'m' : ''}</div>
+        <span class="wd-fish ${cond.cls}">${cond.label}</span>
+      `;
+      el.appendChild(div);
+    }
+  }
+
+  initWeather();
 
   if('serviceWorker' in navigator){
     window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(()=>{}); });
