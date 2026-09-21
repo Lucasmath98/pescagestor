@@ -158,7 +158,7 @@
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 15c3 3 6 3 9 0s6-3 9 0" stroke="#3FC1B0" stroke-width="2" stroke-linecap="round"/><path d="M12 3v10M8 7l4-4 4 4" stroke="#3FC1B0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       PescaGestor
     </div>
-    <button class="plan-badge" onclick="openPlans()" id="planBadge">⭐ Plano</button>
+    <button class="plan-badge" id="planBadge" style="display:none">Plano</button>
   </div>
 
   <div class="vessel-chips" id="vesselChips"></div>
@@ -343,9 +343,9 @@
 <script>
   const DB_KEY = 'pescagestor_data_v2';
   const PLANS = {
-    plan1: { name: 'Plano Básico',   limit: 3,  price: 29.90 },
-    plan2: { name: 'Plano Padrão',   limit: 5,  price: 59.90 },
-    plan3: { name: 'Plano Master',   limit: 10, price: 90.00, limitLabel: '10 barcos ou mais' },
+    plan1: { name: 'PescaGestor', limit: 9999, price: 0 },
+    plan2: { name: 'PescaGestor', limit: 9999, price: 0 },
+    plan3: { name: 'PescaGestor', limit: 9999, price: 0 },
   };
 
   function loadDB(){
